@@ -1,0 +1,78 @@
+# name: test/sql/read_excel.test
+# group: [vgi_poi]
+#
+# read_excel() and excel_sheets() over .xlsx and .xls fixtures, incl. a formula.
+
+require-env VGI_POI_WORKER
+
+# NOTE: under haybarn-unittest `require vgi` SKIPS the file; load explicitly.
+statement ok
+LOAD vgi;
+
+statement ok
+ATTACH 'excel' AS excel (TYPE vgi, LOCATION '${VGI_POI_WORKER}');
+
+# ---- read_excel over an .xlsx -----------------------------------------------
+
+# A1 numeric == 2.
+query III
+SELECT value, type, formula
+FROM excel.read_excel('test/sql/data/sample.xlsx')
+WHERE sheet = 'Numbers' AND cell_ref = 'A1';
+----
+2	NUMERIC	NULL
+
+# C1 is a formula =A1+B1 that evaluates to 5.
+query III
+SELECT value, type, formula
+FROM excel.read_excel('test/sql/data/sample.xlsx')
+WHERE sheet = 'Numbers' AND cell_ref = 'C1';
+----
+5	FORMULA	A1+B1
+
+# string + boolean cells carry their types.
+query II rowsort
+SELECT cell_ref, type
+FROM excel.read_excel('test/sql/data/sample.xlsx')
+WHERE sheet = 'Numbers' AND cell_ref IN ('A2', 'B2');
+----
+A2	STRING
+B2	BOOLEAN
+
+# The sheet named arg filters to one sheet.
+query I
+SELECT value
+FROM excel.read_excel('test/sql/data/sample.xlsx', sheet := 'Other');
+----
+second sheet
+
+# ---- read_excel over the legacy .xls ----------------------------------------
+
+query III
+SELECT value, type, formula
+FROM excel.read_excel('test/sql/data/sample.xls')
+WHERE sheet = 'Numbers' AND cell_ref = 'C1';
+----
+5	FORMULA	A1+B1
+
+# ---- excel_sheets directory -------------------------------------------------
+
+query II
+SELECT idx, name
+FROM excel.excel_sheets('test/sql/data/sample.xlsx')
+ORDER BY idx;
+----
+0	Numbers
+1	Other
+
+# ---- hostile input: garbage bytes -> no rows, no crash ----------------------
+# (A table-function arg can't hold a subquery, so pass a BLOB literal directly.)
+
+query I
+SELECT count(*) FROM excel.read_excel(
+  '\x0B\x30\x55\x7A\x9F\xC4\xE9\x0E\x33\x58\x7D\xA2\xC7\xEC\x11\x36'::BLOB);
+----
+0
+
+statement ok
+DETACH excel;

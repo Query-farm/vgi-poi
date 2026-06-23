@@ -4,7 +4,9 @@
 
 <p align="center"><em>A <a href="https://query.farm">Query.Farm</a> VGI worker for DuckDB.</em></p>
 
-# vgi-poi
+# Read & Write Excel Workbooks (Formulas, Types) in DuckDB
+
+> **vgi-poi** · a [Query.Farm](https://query.farm) VGI worker · powered by Apache POI
 
 [![test](https://github.com/Query-farm/vgi-poi/actions/workflows/test.yml/badge.svg)](https://github.com/Query-farm/vgi-poi/actions/workflows/test.yml)
 

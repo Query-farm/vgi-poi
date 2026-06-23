@@ -1,3 +1,9 @@
+<p align="center">
+  <img src="docs/vgi-logo.png" alt="Vector Gateway Interface (VGI)" width="320">
+</p>
+
+<p align="center"><em>A <a href="https://query.farm">Query.Farm</a> VGI worker for DuckDB.</em></p>
+
 # vgi-poi
 
 [![test](https://github.com/Query-farm/vgi-poi/actions/workflows/test.yml/badge.svg)](https://github.com/Query-farm/vgi-poi/actions/workflows/test.yml)
@@ -186,3 +192,12 @@ JUnit POI builders via `make fixtures` (Gradle `generateSqlFixtures`).
   column params in a table-function argument), so you cannot pipe a `write_xlsx`
   BLOB straight back into `read_excel` in one statement. The byte-level round trip
   is covered by the JUnit suite.
+
+---
+
+## Authorship & License
+
+Written by [Query.Farm](https://query.farm) — every VGI worker is designed and built by Query.Farm.
+
+Copyright 2026 Query Farm LLC - https://query.farm
+

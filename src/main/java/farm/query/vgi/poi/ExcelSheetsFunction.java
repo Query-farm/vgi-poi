@@ -30,7 +30,18 @@ public final class ExcelSheetsFunction implements TableFunction {
         return FunctionMetadata.describe(
                         "List the worksheets of an Excel workbook (.xls or .xlsx) with index, name, "
                                 + "row count, and column count (Apache POI).")
-                .withCategories("spreadsheet", "excel", "poi");
+                .withCategories("spreadsheet", "excel", "poi")
+                .withTag("vgi.columns_md",
+                        "| column | type | description |\n"
+                                + "|---|---|---|\n"
+                                + "| `idx` | INTEGER | 0-based sheet ordinal within the workbook. |\n"
+                                + "| `name` | VARCHAR | Worksheet name. |\n"
+                                + "| `rows` | INTEGER | Number of rows (last row index + 1). |\n"
+                                + "| `cols` | INTEGER | Maximum column count across the sheet's rows. |")
+                .withTag("vgi.example_queries",
+                        "[{\"sql\":\"SELECT idx, name, rows, cols FROM "
+                                + "excel.main.excel_sheets('book.xlsx');\",\"description\":\"List "
+                                + "every worksheet of a workbook with its dimensions.\"}]");
     }
 
     @Override public List<ArgSpec> argumentSpecs() {

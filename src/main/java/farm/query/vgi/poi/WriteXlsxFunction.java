@@ -71,7 +71,17 @@ public final class WriteXlsxFunction implements TableInOutFunction {
         return FunctionMetadata.describe(
                         "Serialize an input relation into an .xlsx workbook BLOB with typed cells and an "
                                 + "optional bold header row (Apache POI).")
-                .withCategories("spreadsheet", "excel", "poi");
+                .withCategories("spreadsheet", "excel", "poi")
+                .withTag("vgi.columns_md",
+                        "| column | type | description |\n"
+                                + "|---|---|---|\n"
+                                + "| `xlsx` | BLOB | The generated `.xlsx` workbook bytes (one row per "
+                                + "input batch; the last row is the complete workbook). |")
+                .withTag("vgi.example_queries",
+                        "[{\"sql\":\"SELECT length(xlsx) AS bytes FROM excel.main.write_xlsx("
+                                + "(SELECT 1 AS id, 'Ada' AS name), sheet_name := "
+                                + "'People');\",\"description\":\"Export a query result to an .xlsx "
+                                + "workbook BLOB on a named sheet.\"}]");
     }
 
     @Override public List<ArgSpec> argumentSpecs() {

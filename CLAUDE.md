@@ -73,7 +73,7 @@ Makefile                     build / fixtures / test-unit / test-sql / test / cl
 
 ## SDK dependency & CI (self-contained via Maven Central)
 
-Depends on `farm.query:vgi:0.4.0` (pulls in `farm.query:vgirpc:0.10.2` transitively;
+Depends on `farm.query:vgi:0.5.0` (pulls in `farm.query:vgirpc:0.10.2` transitively;
 vgirpc declared explicitly since the code imports `farm.query.vgirpc.*`). **On
 Maven Central**, so the build is fully self-contained: no sibling checkout, no
 `mavenLocal`, no composite build. `.github/workflows/test.yml` is a single

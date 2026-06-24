@@ -28,7 +28,15 @@ public final class DetectExcelFunction extends ScalarFn {
     }
 
     @Override public FunctionMetadata metadata() {
-        return FunctionMetadata.describe(description()).withCategories("spreadsheet", "detection", "poi");
+        return FunctionMetadata.describe(description())
+                .withCategories("spreadsheet", "detection", "poi")
+                .withTag("vgi.example_queries",
+                        "[{\"sql\":\"SELECT excel.main.detect_excel((SELECT content FROM "
+                                + "read_blob('book.xlsx')));\",\"description\":\"Detect the format of "
+                                + "a file's bytes — returns 'xlsx', 'xls', or NULL.\"},"
+                                + "{\"sql\":\"SELECT excel.main.detect_excel('not a spreadsheet'::BLOB) "
+                                + "IS NULL AS not_excel;\",\"description\":\"Non-Excel bytes return "
+                                + "NULL, so a NULL check tells you the BLOB is not a workbook.\"}]");
     }
 
     /** Always VARCHAR, regardless of the (any-typed) input. */

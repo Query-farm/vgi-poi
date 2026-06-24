@@ -36,7 +36,25 @@ public final class ReadExcelFunction implements TableFunction {
         return FunctionMetadata.describe(
                         "Read every non-blank cell of an Excel workbook (.xls or .xlsx) as rows with "
                                 + "type, A1 reference, evaluated value, and formula text (Apache POI).")
-                .withCategories("spreadsheet", "excel", "poi");
+                .withCategories("spreadsheet", "excel", "poi")
+                .withTag("vgi.columns_md",
+                        "| column | type | description |\n"
+                                + "|---|---|---|\n"
+                                + "| `sheet` | VARCHAR | Worksheet name the cell belongs to. |\n"
+                                + "| `row` | INTEGER | 0-based row index of the cell. |\n"
+                                + "| `col` | INTEGER | 0-based column index of the cell. |\n"
+                                + "| `cell_ref` | VARCHAR | A1-style cell reference, e.g. `B3`. |\n"
+                                + "| `value` | VARCHAR | Cell value as text; for formulas, the evaluated result. |\n"
+                                + "| `type` | VARCHAR | Cell type: `NUMERIC`, `STRING`, `BOOLEAN`, `FORMULA`, `BLANK`, or `ERROR`. |\n"
+                                + "| `formula` | VARCHAR | Formula text for FORMULA cells (without `=`), else NULL. |")
+                .withTag("vgi.example_queries",
+                        "[{\"sql\":\"SELECT sheet, cell_ref, value, type FROM "
+                                + "excel.main.read_excel('book.xlsx');\",\"description\":\"Read every "
+                                + "non-blank cell of a workbook as rows.\"},"
+                                + "{\"sql\":\"SELECT cell_ref, formula, value FROM "
+                                + "excel.main.read_excel('book.xlsx', sheet := 'Q1') WHERE type = "
+                                + "'FORMULA';\",\"description\":\"List the formula cells (and their "
+                                + "evaluated values) on a named sheet.\"}]");
     }
 
     @Override public List<ArgSpec> argumentSpecs() {

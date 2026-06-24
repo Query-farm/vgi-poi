@@ -92,48 +92,67 @@ public final class WriteXlsxFunction implements TableInOutFunction {
                 a.namedBool("header", true));
     }
 
+    /**
+     * Per-exchange state for the buffering {@code write_xlsx} table-in-out.
+     *
+     * <p><b>HTTP-serializable.</b> Over the HTTP transport the worker is stateless
+     * across exchanges, so the framework CBOR-serializes this state into a
+     * continuation token between every input-batch exchange (StateSerializer skips
+     * {@code static}/{@code transient}/{@code synthetic} fields). A live Apache POI
+     * {@link XSSFWorkbook}/{@link Sheet}/{@link CellStyle} is NOT serializable, so
+     * the previous design (which kept the workbook as state) made the http
+     * {@code /init/exchange} return 500 "state serialize failed" — silently skipped
+     * by the sqllogictest runner. subprocess/unix kept the live workbook in memory
+     * and were unaffected.
+     *
+     * <p>The fix accumulates only serializable DATA — the column names plus the
+     * cell values of every row seen so far, each cell a plain JSON/CBOR-friendly
+     * value (Double/Long/Boolean/String + an ISO date/timestamp string tagged so it
+     * is re-emitted as a date cell) — and (re)builds the POI workbook locally in
+     * {@code emitWorkbook} from that accumulated data. The schema is persisted as
+     * bytes; everything POI is local, never a state field.
+     */
     public static final class State extends TableInOutExchangeState {
-        private final Schema inputSchema;
-        private final String sheetName;
-        private final boolean header;
+        // Persisted (serializable) fields.
+        public byte[] inputSchemaBytes;
+        public String sheetName;
+        public boolean header;
+        public java.util.List<String> columnNames = new java.util.ArrayList<>();
+        // Accumulated rows; each cell is a CellValue (a tagged, serializable value).
+        public java.util.List<java.util.List<CellValue>> rows = new java.util.ArrayList<>();
 
-        private XSSFWorkbook workbook;
-        private Sheet sheet;
-        private CellStyle headerStyle;
-        private CellStyle dateStyle;
-        private int nextRow;        // next physical row to write into the sheet
-        private boolean built;      // header written / workbook initialised
+        public State() {}
 
         State(Schema inputSchema, String sheetName, boolean header) {
-            this.inputSchema = inputSchema;
+            this.inputSchemaBytes = inputSchema == null ? null : SchemaUtil.serializeSchema(inputSchema);
             this.sheetName = sheetName == null || sheetName.isEmpty() ? "Sheet1" : sheetName;
             this.header = header;
-        }
-
-        private void ensureWorkbook() {
-            if (built) return;
-            workbook = new XSSFWorkbook();
-            sheet = workbook.createSheet(sheetName);
-
-            Font bold = workbook.createFont();
-            bold.setBold(true);
-            headerStyle = workbook.createCellStyle();
-            headerStyle.setFont(bold);
-
-            CreationHelper helper = workbook.getCreationHelper();
-            dateStyle = workbook.createCellStyle();
-            dateStyle.setDataFormat(helper.createDataFormat().getFormat("yyyy-mm-dd hh:mm:ss"));
-
-            if (header && inputSchema != null) {
-                Row hr = sheet.createRow(nextRow++);
-                List<Field> fields = inputSchema.getFields();
-                for (int c = 0; c < fields.size(); c++) {
-                    Cell cell = hr.createCell(c);
-                    cell.setCellValue(fields.get(c).getName());
-                    cell.setCellStyle(headerStyle);
+            if (inputSchema != null) {
+                for (Field f : inputSchema.getFields()) {
+                    columnNames.add(f.getName());
                 }
             }
-            built = true;
+        }
+
+        /** A serializable spreadsheet cell value: a kind tag plus its payload. */
+        public static final class CellValue {
+            public Kind kind;
+            public double num;
+            public boolean bool;
+            public String str;     // string text OR ISO date/timestamp for DATE/DATETIME
+
+            public enum Kind { BLANK, NUMBER, BOOL, STRING, DATE, DATETIME }
+
+            public CellValue() {}
+
+            private CellValue(Kind kind) { this.kind = kind; }
+
+            static CellValue blank() { return new CellValue(Kind.BLANK); }
+            static CellValue number(double d) { CellValue c = new CellValue(Kind.NUMBER); c.num = d; return c; }
+            static CellValue bool(boolean b) { CellValue c = new CellValue(Kind.BOOL); c.bool = b; return c; }
+            static CellValue string(String s) { CellValue c = new CellValue(Kind.STRING); c.str = s; return c; }
+            static CellValue date(String iso) { CellValue c = new CellValue(Kind.DATE); c.str = iso; return c; }
+            static CellValue datetime(String iso) { CellValue c = new CellValue(Kind.DATETIME); c.str = iso; return c; }
         }
 
         @Override public void onInputBatch(AnnotatedBatch batch, OutputCollector out, CallContext ctx) {
@@ -148,14 +167,21 @@ public final class WriteXlsxFunction implements TableInOutFunction {
                 return;
             }
 
-            ensureWorkbook();
+            // Capture column names from the first non-empty batch if we did not get
+            // them from the bind input schema (defensive — http init may differ).
+            if (columnNames.isEmpty()) {
+                for (Field f : in.getSchema().getFields()) {
+                    columnNames.add(f.getName());
+                }
+            }
+
             List<Field> fields = in.getSchema().getFields();
             for (int r = 0; r < n; r++) {
-                Row row = sheet.createRow(nextRow++);
+                java.util.List<CellValue> row = new java.util.ArrayList<>(fields.size());
                 for (int c = 0; c < fields.size(); c++) {
-                    FieldVector v = in.getVector(c);
-                    writeCell(row.createCell(c), v, r);
+                    row.add(cellValue(in.getVector(c), r));
                 }
+                rows.add(row);
             }
 
             // The VGI table-in-out transport delivers input batches until the
@@ -168,11 +194,38 @@ public final class WriteXlsxFunction implements TableInOutFunction {
             emitWorkbook(out);
         }
 
-        /** Serialize the current accumulated workbook and emit it as a BLOB row. */
+        /** Build the POI workbook from the accumulated data and emit it as a BLOB row. */
         private void emitWorkbook(OutputCollector out) {
-            ensureWorkbook(); // handles empty input (header-only / blank book)
             byte[] bytes;
-            try (ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+            try (XSSFWorkbook workbook = new XSSFWorkbook();
+                 ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+                Sheet sheet = workbook.createSheet(sheetName == null || sheetName.isEmpty() ? "Sheet1" : sheetName);
+
+                Font bold = workbook.createFont();
+                bold.setBold(true);
+                CellStyle headerStyle = workbook.createCellStyle();
+                headerStyle.setFont(bold);
+
+                CreationHelper helper = workbook.getCreationHelper();
+                CellStyle dateStyle = workbook.createCellStyle();
+                dateStyle.setDataFormat(helper.createDataFormat().getFormat("yyyy-mm-dd hh:mm:ss"));
+
+                int physRow = 0;
+                if (header && !columnNames.isEmpty()) {
+                    Row hr = sheet.createRow(physRow++);
+                    for (int c = 0; c < columnNames.size(); c++) {
+                        Cell cell = hr.createCell(c);
+                        cell.setCellValue(columnNames.get(c));
+                        cell.setCellStyle(headerStyle);
+                    }
+                }
+                for (java.util.List<CellValue> dataRow : rows) {
+                    Row row = sheet.createRow(physRow++);
+                    for (int c = 0; c < dataRow.size(); c++) {
+                        writeCell(row.createCell(c), dataRow.get(c), dateStyle);
+                    }
+                }
+
                 workbook.write(bos);
                 bytes = bos.toByteArray();
             } catch (Exception e) {
@@ -188,51 +241,64 @@ public final class WriteXlsxFunction implements TableInOutFunction {
             out.emit(root);
         }
 
-        private void writeCell(Cell cell, FieldVector v, int row) {
+        /** Extract a serializable {@link CellValue} from an Arrow vector cell. */
+        private static CellValue cellValue(FieldVector v, int row) {
             if (v.isNull(row)) {
-                cell.setBlank();
-                return;
+                return CellValue.blank();
             }
             if (v instanceof Float8Vector d) {
-                cell.setCellValue(d.get(row));
+                return CellValue.number(d.get(row));
             } else if (v instanceof Float4Vector f) {
-                cell.setCellValue(f.get(row));
+                return CellValue.number(f.get(row));
             } else if (v instanceof IntVector iv) {
-                cell.setCellValue(iv.get(row));
+                return CellValue.number(iv.get(row));
             } else if (v instanceof BigIntVector bv) {
-                cell.setCellValue((double) bv.get(row));
+                return CellValue.number((double) bv.get(row));
             } else if (v instanceof SmallIntVector sv) {
-                cell.setCellValue(sv.get(row));
+                return CellValue.number(sv.get(row));
             } else if (v instanceof TinyIntVector tv) {
-                cell.setCellValue(tv.get(row));
+                return CellValue.number(tv.get(row));
             } else if (v instanceof BitVector bit) {
-                cell.setCellValue(bit.get(row) != 0);
+                return CellValue.bool(bit.get(row) != 0);
             } else if (v instanceof DateDayVector dd) {
-                cell.setCellValue(java.time.LocalDate.ofEpochDay(dd.get(row)));
-                cell.setCellStyle(dateStyle);
+                return CellValue.date(java.time.LocalDate.ofEpochDay(dd.get(row)).toString());
             } else if (v instanceof DateMilliVector dm) {
-                cell.setCellValue(new java.util.Date(dm.get(row)));
-                cell.setCellStyle(dateStyle);
+                java.time.LocalDateTime ldt = java.time.LocalDateTime.ofInstant(
+                        java.time.Instant.ofEpochMilli(dm.get(row)), java.time.ZoneOffset.UTC);
+                return CellValue.datetime(ldt.toString());
             } else if (v instanceof TimeStampVector ts) {
-                // TimeStamp* store an integer count of the vector's time unit since
-                // epoch; normalise to millis via the vector's own getObject when
-                // possible, else fall back to a string.
                 Object obj = ts.getObject(row);
                 if (obj instanceof java.time.LocalDateTime ldt) {
-                    cell.setCellValue(ldt);
-                    cell.setCellStyle(dateStyle);
-                } else {
-                    cell.setCellValue(String.valueOf(obj));
+                    return CellValue.datetime(ldt.toString());
                 }
+                return CellValue.string(String.valueOf(obj));
             } else if (v instanceof VarCharVector s) {
                 Object o = s.getObject(row);
-                cell.setCellValue(o instanceof Text t ? t.toString() : String.valueOf(o));
+                return CellValue.string(o instanceof Text t ? t.toString() : String.valueOf(o));
             } else if (v instanceof VarBinaryVector ignored) {
-                // Don't dump raw bytes into a cell; record the length instead.
-                cell.setCellValue("<binary>");
+                return CellValue.string("<binary>");
             } else {
                 Object o = v.getObject(row);
-                cell.setCellValue(o == null ? "" : o.toString());
+                return CellValue.string(o == null ? "" : o.toString());
+            }
+        }
+
+        /** Write a {@link CellValue} into a POI cell, applying the date style as needed. */
+        private static void writeCell(Cell cell, CellValue cv, CellStyle dateStyle) {
+            if (cv == null || cv.kind == null) { cell.setBlank(); return; }
+            switch (cv.kind) {
+                case BLANK -> cell.setBlank();
+                case NUMBER -> cell.setCellValue(cv.num);
+                case BOOL -> cell.setCellValue(cv.bool);
+                case DATE -> {
+                    cell.setCellValue(java.time.LocalDate.parse(cv.str));
+                    cell.setCellStyle(dateStyle);
+                }
+                case DATETIME -> {
+                    cell.setCellValue(java.time.LocalDateTime.parse(cv.str));
+                    cell.setCellStyle(dateStyle);
+                }
+                default -> cell.setCellValue(cv.str);
             }
         }
     }

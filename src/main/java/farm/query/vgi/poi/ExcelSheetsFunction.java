@@ -31,17 +31,54 @@ public final class ExcelSheetsFunction implements TableFunction {
                         "List the worksheets of an Excel workbook (.xls or .xlsx) with index, name, "
                                 + "row count, and column count (Apache POI).")
                 .withCategories("spreadsheet", "excel", "poi")
-                .withTag("vgi.columns_md",
+                .withTag("vgi.example_queries",
+                        "[{\"sql\":\"SELECT idx, name, rows, cols FROM excel.main.excel_sheets('"
+                                + Examples.XLSX_BLOB + "'::BLOB) ORDER BY idx;\",\"description\":\"List "
+                                + "every worksheet of a workbook (inline bytes) with its dimensions.\"}]")
+                .withExamples(Meta.examples(
+                        Meta.example(
+                                "SELECT idx, name, rows, cols FROM excel.main.excel_sheets('"
+                                        + Examples.XLSX_BLOB + "'::BLOB) ORDER BY idx;",
+                                "List every worksheet of a workbook (passed as inline bytes) with "
+                                        + "its dimensions.")))
+                .withTag("vgi.result_columns_md",
                         "| column | type | description |\n"
                                 + "|---|---|---|\n"
                                 + "| `idx` | INTEGER | 0-based sheet ordinal within the workbook. |\n"
                                 + "| `name` | VARCHAR | Worksheet name. |\n"
                                 + "| `rows` | INTEGER | Number of rows (last row index + 1). |\n"
                                 + "| `cols` | INTEGER | Maximum column count across the sheet's rows. |")
-                .withTag("vgi.example_queries",
-                        "[{\"sql\":\"SELECT idx, name, rows, cols FROM "
-                                + "excel.main.excel_sheets('book.xlsx');\",\"description\":\"List "
-                                + "every worksheet of a workbook with its dimensions.\"}]");
+                .withTags(Meta.objectTags(
+                        "List Excel Worksheets",
+                        "## excel_sheets\n\n"
+                                + "Returns the **worksheet directory** of an Excel workbook — one row "
+                                + "per sheet — without reading any cell data. Accepts a `.xlsx` or "
+                                + "legacy `.xls` file **path** *or* the raw workbook **bytes** as a "
+                                + "`BLOB`.\n\n"
+                                + "Each row gives the sheet's 0-based ordinal (`idx`), its `name`, the "
+                                + "`rows` count (last row index + 1) and the maximum `cols` count "
+                                + "across the sheet. Use it to discover sheet names before calling "
+                                + "`read_excel(..., sheet := '<name>')`, or to gauge a workbook's size "
+                                + "and shape cheaply.\n\n"
+                                + "A corrupt or non-spreadsheet input yields **zero rows** (logged to "
+                                + "stderr) rather than an error. Table-function arguments must be "
+                                + "**literals** — pass bytes as a `BLOB` literal, not a subquery.",
+                        "Lists the worksheets of a Microsoft Excel workbook (`.xls` or `.xlsx`), "
+                                + "returning each sheet's ordinal, name, row count, and column "
+                                + "count.\n\n"
+                                + "**Usage**\n\n"
+                                + "```sql\n"
+                                + "SELECT idx, name, rows, cols\n"
+                                + "FROM excel.main.excel_sheets('book.xlsx')\n"
+                                + "ORDER BY idx;\n"
+                                + "```\n\n"
+                                + "**Notes**: a lightweight companion to `read_excel` for discovering "
+                                + "sheet names and dimensions; supports both `.xls` (HSSF) and `.xlsx` "
+                                + "(XSSF); inputs may be a file path or raw bytes.",
+                        "excel sheets, worksheets, list sheets, sheet names, workbook directory, "
+                                + "tabs, spreadsheet, xlsx, xls, apache poi, sheet count, "
+                                + "sheet dimensions",
+                        "ExcelSheetsFunction.java"));
     }
 
     @Override public List<ArgSpec> argumentSpecs() {

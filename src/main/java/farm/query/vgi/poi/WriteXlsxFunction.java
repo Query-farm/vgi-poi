@@ -72,16 +72,65 @@ public final class WriteXlsxFunction implements TableInOutFunction {
                         "Serialize an input relation into an .xlsx workbook BLOB with typed cells and an "
                                 + "optional bold header row (Apache POI).")
                 .withCategories("spreadsheet", "excel", "poi")
-                .withTag("vgi.columns_md",
+                .withTag("vgi.example_queries",
+                        "[{\"sql\":\"SELECT octet_length(xlsx) AS bytes FROM excel.main.write_xlsx("
+                                + "(SELECT 1 AS id, 'Ada' AS name), sheet_name := "
+                                + "'People');\",\"description\":\"Export a query result to an .xlsx "
+                                + "workbook BLOB on a named sheet.\"}]")
+                .withExamples(Meta.examples(
+                        Meta.example(
+                                "SELECT octet_length(xlsx) > 0 AS produced FROM excel.main.write_xlsx("
+                                        + "(SELECT 1 AS id, 'Ada' AS name), sheet_name := 'People');",
+                                "Export a one-row query result to an .xlsx workbook BLOB on a named "
+                                        + "sheet and confirm bytes were produced."),
+                        Meta.example(
+                                "SELECT excel.main.detect_excel(xlsx) AS fmt FROM excel.main.write_xlsx("
+                                        + "(SELECT 1 AS id, 'Ada' AS name));",
+                                "Round-trip check: the BLOB written by write_xlsx is detected as an "
+                                        + "'xlsx' workbook.")))
+                .withTag("vgi.result_columns_md",
                         "| column | type | description |\n"
                                 + "|---|---|---|\n"
                                 + "| `xlsx` | BLOB | The generated `.xlsx` workbook bytes (one row per "
                                 + "input batch; the last row is the complete workbook). |")
-                .withTag("vgi.example_queries",
-                        "[{\"sql\":\"SELECT length(xlsx) AS bytes FROM excel.main.write_xlsx("
-                                + "(SELECT 1 AS id, 'Ada' AS name), sheet_name := "
-                                + "'People');\",\"description\":\"Export a query result to an .xlsx "
-                                + "workbook BLOB on a named sheet.\"}]");
+                .withTags(Meta.objectTags(
+                        "Write Relation To Xlsx Workbook",
+                        "## write_xlsx\n\n"
+                                + "A **table-in-out** function that consumes an input relation and "
+                                + "emits a single-column (`xlsx` `BLOB`) result carrying that relation "
+                                + "serialized as an `.xlsx` (OOXML) workbook. Named arguments: "
+                                + "`sheet_name := 'Sheet1'` sets the worksheet name and "
+                                + "`header := true` writes a **bold first row** of the input column "
+                                + "names.\n\n"
+                                + "Cells are typed from the input columns: numeric columns become "
+                                + "numeric cells, booleans become boolean cells, date/timestamp "
+                                + "columns become date-formatted cells, and everything else is written "
+                                + "as text. Because DuckDB rejects `length()` on a `BLOB`, use "
+                                + "`octet_length(xlsx)` to size the result.\n\n"
+                                + "**Streaming caveat**: the table-in-out transport delivers input "
+                                + "batches with no separate finalize signal, so the workbook-so-far is "
+                                + "emitted after each input batch. A typical single-batch input yields "
+                                + "exactly one BLOB row containing the whole relation; an input large "
+                                + "enough to span multiple Arrow batches yields one row per batch, the "
+                                + "**last** of which is the complete workbook. Pair it with "
+                                + "`detect_excel` to validate the output.",
+                        "Serializes a SQL relation into a downloadable Microsoft Excel `.xlsx` "
+                                + "workbook, returned as a `BLOB`, with typed cells and an optional "
+                                + "bold header row.\n\n"
+                                + "**Usage**\n\n"
+                                + "```sql\n"
+                                + "SELECT octet_length(xlsx) AS bytes\n"
+                                + "FROM excel.main.write_xlsx(\n"
+                                + "  (SELECT id, name FROM people),\n"
+                                + "  sheet_name := 'People', header := true);\n"
+                                + "```\n\n"
+                                + "**Notes**: numeric/boolean/date columns keep their Excel cell "
+                                + "types; use `octet_length` (not `length`) on the BLOB; for a "
+                                + "multi-batch input the last emitted row is the complete workbook.",
+                        "write xlsx, export excel, to excel, serialize spreadsheet, workbook blob, "
+                                + "table to xlsx, save xlsx, generate excel, apache poi, "
+                                + "header row, sheet name",
+                        "WriteXlsxFunction.java"));
     }
 
     @Override public List<ArgSpec> argumentSpecs() {

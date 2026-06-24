@@ -36,7 +36,47 @@ public final class DetectExcelFunction extends ScalarFn {
                                 + "a file's bytes — returns 'xlsx', 'xls', or NULL.\"},"
                                 + "{\"sql\":\"SELECT excel.main.detect_excel('not a spreadsheet'::BLOB) "
                                 + "IS NULL AS not_excel;\",\"description\":\"Non-Excel bytes return "
-                                + "NULL, so a NULL check tells you the BLOB is not a workbook.\"}]");
+                                + "NULL, so a NULL check tells you the BLOB is not a workbook.\"}]")
+                .withExamples(Meta.examples(
+                        Meta.example(
+                                "SELECT excel.main.detect_excel('" + Examples.XLSX_BLOB
+                                        + "'::BLOB) AS fmt;",
+                                "Detect the format of a workbook's bytes — returns 'xlsx' for an "
+                                        + "OOXML workbook."),
+                        Meta.example(
+                                "SELECT excel.main.detect_excel('not a spreadsheet'::BLOB) IS NULL "
+                                        + "AS not_excel;",
+                                "Non-Excel bytes return NULL, so a NULL check tells you the BLOB is "
+                                        + "not a workbook.")))
+                .withTags(Meta.objectTags(
+                        "Detect Excel File Format",
+                        "## detect_excel\n\n"
+                                + "A scalar that **sniffs the magic bytes** of a `BLOB` and returns "
+                                + "`'xlsx'` for a modern OOXML workbook (the ZIP/`PK` container), "
+                                + "`'xls'` for a legacy OLE2/HSSF workbook, or `NULL` when the bytes "
+                                + "are neither. `NULL` input returns `NULL`.\n\n"
+                                + "Detection is **content-based** — it does not look at a file name or "
+                                + "extension — so it works on bytes that arrived over the wire or from "
+                                + "another function. Use it to validate untrusted uploads before "
+                                + "calling `read_excel`, to branch on workbook format, or to confirm "
+                                + "that `write_xlsx` produced a valid workbook. A non-Excel BLOB is "
+                                + "reported as `NULL` rather than raising an error.",
+                        "Identifies whether a `BLOB` is a Microsoft Excel workbook by inspecting its "
+                                + "magic bytes, returning `'xlsx'`, `'xls'`, or `NULL`.\n\n"
+                                + "**Usage**\n\n"
+                                + "```sql\n"
+                                + "-- format of a file's bytes\n"
+                                + "SELECT excel.main.detect_excel((SELECT content FROM read_blob('book.xlsx')));\n"
+                                + "-- guard before reading\n"
+                                + "SELECT excel.main.detect_excel(my_blob) IS NOT NULL AS is_excel;\n"
+                                + "```\n\n"
+                                + "**Notes**: detection is by content, not extension; legacy `.xls` "
+                                + "(OLE2) and modern `.xlsx` (OOXML) are distinguished; anything else "
+                                + "yields `NULL`.",
+                        "detect excel, sniff format, magic bytes, file type, xlsx, xls, "
+                                + "ole2, ooxml, is excel, content detection, validate workbook, "
+                                + "apache poi",
+                        "DetectExcelFunction.java"));
     }
 
     /** Always VARCHAR, regardless of the (any-typed) input. */

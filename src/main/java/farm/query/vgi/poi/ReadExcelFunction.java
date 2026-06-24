@@ -37,7 +37,24 @@ public final class ReadExcelFunction implements TableFunction {
                         "Read every non-blank cell of an Excel workbook (.xls or .xlsx) as rows with "
                                 + "type, A1 reference, evaluated value, and formula text (Apache POI).")
                 .withCategories("spreadsheet", "excel", "poi")
-                .withTag("vgi.columns_md",
+                .withTag("vgi.example_queries",
+                        "[{\"sql\":\"SELECT sheet, cell_ref, value, type FROM excel.main.read_excel('"
+                                + Examples.XLSX_BLOB + "'::BLOB) ORDER BY cell_ref;\",\"description\":"
+                                + "\"Read every non-blank cell of a workbook (inline bytes) as rows.\"},"
+                                + "{\"sql\":\"SELECT count(*) AS cells FROM excel.main.read_excel('"
+                                + Examples.XLSX_BLOB + "'::BLOB);\",\"description\":\"Count the "
+                                + "non-blank cells in a workbook.\"}]")
+                .withExamples(Meta.examples(
+                        Meta.example(
+                                "SELECT sheet, cell_ref, value, type FROM excel.main.read_excel('"
+                                        + Examples.XLSX_BLOB + "'::BLOB) ORDER BY cell_ref;",
+                                "Read every non-blank cell of a workbook (passed as inline bytes) "
+                                        + "as one row per cell."),
+                        Meta.example(
+                                "SELECT count(*) AS cells FROM excel.main.read_excel('"
+                                        + Examples.XLSX_BLOB + "'::BLOB);",
+                                "Count the non-blank cells in a workbook.")))
+                .withTag("vgi.result_columns_md",
                         "| column | type | description |\n"
                                 + "|---|---|---|\n"
                                 + "| `sheet` | VARCHAR | Worksheet name the cell belongs to. |\n"
@@ -47,14 +64,45 @@ public final class ReadExcelFunction implements TableFunction {
                                 + "| `value` | VARCHAR | Cell value as text; for formulas, the evaluated result. |\n"
                                 + "| `type` | VARCHAR | Cell type: `NUMERIC`, `STRING`, `BOOLEAN`, `FORMULA`, `BLANK`, or `ERROR`. |\n"
                                 + "| `formula` | VARCHAR | Formula text for FORMULA cells (without `=`), else NULL. |")
-                .withTag("vgi.example_queries",
-                        "[{\"sql\":\"SELECT sheet, cell_ref, value, type FROM "
-                                + "excel.main.read_excel('book.xlsx');\",\"description\":\"Read every "
-                                + "non-blank cell of a workbook as rows.\"},"
-                                + "{\"sql\":\"SELECT cell_ref, formula, value FROM "
-                                + "excel.main.read_excel('book.xlsx', sheet := 'Q1') WHERE type = "
-                                + "'FORMULA';\",\"description\":\"List the formula cells (and their "
-                                + "evaluated values) on a named sheet.\"}]");
+                .withTags(Meta.objectTags(
+                        "Read Excel Workbook Cells",
+                        "## read_excel\n\n"
+                                + "Streams an Excel workbook into SQL **one row per non-blank cell**. "
+                                + "Accepts a `.xlsx` (OOXML/XSSF) or legacy `.xls` (OLE2/HSSF) file "
+                                + "**path** *or* the raw workbook **bytes** as a `BLOB`. The optional "
+                                + "named argument `sheet := '<name>'` restricts output to a single "
+                                + "worksheet.\n\n"
+                                + "Each row carries the worksheet name, 0-based `row`/`col`, the "
+                                + "A1-style `cell_ref` (e.g. `B3`), the cell `value` as text (formulas "
+                                + "are **evaluated** and the result is returned in `value`), the cell "
+                                + "`type` (`NUMERIC`/`STRING`/`BOOLEAN`/`FORMULA`/`BLANK`/`ERROR`), and "
+                                + "the raw `formula` text for formula cells.\n\n"
+                                + "Use it to ingest spreadsheet data, audit formulas, or flatten a "
+                                + "workbook for further SQL. Blank cells are skipped; a corrupt or "
+                                + "non-spreadsheet input yields **zero rows** (logged to stderr) "
+                                + "rather than an error, and a NULL document yields no rows. "
+                                + "Table-function arguments must be **literals** — pass bytes as a "
+                                + "`BLOB` literal, not a subquery.",
+                        "Reads a Microsoft Excel workbook (`.xls` or `.xlsx`) and returns one row "
+                                + "for every non-blank cell, including its worksheet, position, "
+                                + "A1 reference, evaluated value, type, and (for formula cells) the "
+                                + "formula text.\n\n"
+                                + "**Usage**\n\n"
+                                + "```sql\n"
+                                + "-- from a file path\n"
+                                + "SELECT * FROM excel.main.read_excel('book.xlsx');\n"
+                                + "-- only one sheet\n"
+                                + "SELECT * FROM excel.main.read_excel('book.xlsx', sheet := 'Q1');\n"
+                                + "-- from raw bytes (BLOB literal)\n"
+                                + "SELECT * FROM excel.main.read_excel('\\x50\\x4b...'::BLOB);\n"
+                                + "```\n\n"
+                                + "**Notes**: formulas are evaluated and the result lands in `value`; "
+                                + "both `.xls` (HSSF) and `.xlsx` (XSSF) are supported; a hostile or "
+                                + "corrupt input returns no rows instead of failing the scan.",
+                        "read excel, read xlsx, read xls, spreadsheet, workbook, cells, "
+                                + "worksheet, formula, A1 reference, apache poi, import excel, "
+                                + "parse spreadsheet, ingest xlsx",
+                        "ReadExcelFunction.java"));
     }
 
     @Override public List<ArgSpec> argumentSpecs() {

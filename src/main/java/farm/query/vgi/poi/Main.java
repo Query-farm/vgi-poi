@@ -47,8 +47,9 @@ public final class Main {
         t.put("vgi.title", "Excel Spreadsheet Read & Write");
         t.put(
                 "vgi.keywords",
-                "excel, xlsx, xls, spreadsheet, workbook, apache poi, read excel, write excel, "
-                        + "worksheet, cells, formula, ooxml, ole2, import, export, blob");
+                "[\"excel\",\"xlsx\",\"xls\",\"spreadsheet\",\"workbook\",\"apache poi\","
+                        + "\"read excel\",\"write excel\",\"worksheet\",\"cells\",\"formula\","
+                        + "\"ooxml\",\"ole2\",\"import\",\"export\",\"blob\"]");
         t.put(
                 "vgi.doc_llm",
                 "Read and write Microsoft Excel workbooks from SQL via Apache POI. Open a .xls "
@@ -110,13 +111,13 @@ public final class Main {
         t.put("vgi.title", "Excel — main");
         t.put(
                 "vgi.keywords",
-                "excel, xlsx, xls, read_excel, excel_sheets, write_xlsx, detect_excel, "
-                        + "spreadsheet, workbook, worksheet, cells, formula, apache poi");
+                "[\"excel\",\"xlsx\",\"xls\",\"read_excel\",\"excel_sheets\",\"write_xlsx\","
+                        + "\"detect_excel\",\"spreadsheet\",\"workbook\",\"worksheet\",\"cells\","
+                        + "\"formula\",\"apache poi\"]");
         // VGI123 classifying tags — BARE keys (not vgi.-namespaced).
         t.put("domain", "spreadsheet");
         t.put("category", "file-io");
         t.put("topic", "excel-read-write");
-        t.put("vgi.source_url", Meta.sourceUrl("Main.java"));
         t.put(
                 "vgi.doc_llm",
                 "Excel spreadsheet functions: read a workbook's cells (read_excel), list its "

@@ -82,7 +82,15 @@ public final class ExcelSheetsFunction implements TableFunction {
     }
 
     @Override public List<ArgSpec> argumentSpecs() {
-        return List.of(ArgSpec.any("doc", 0, List.of()));
+        // ArgSpec canonical ctor: (name, position, arrowType, doc, isConst,
+        // hasDefault, defaultValue, typeBound, varargs, anyType, tableInput).
+        return List.of(
+                new ArgSpec(
+                        "doc", 0, new ArrowType.Null(),
+                        "The Excel workbook whose worksheets to list, given as either a "
+                                + "filesystem path to an .xls/.xlsx file or the raw workbook "
+                                + "bytes. Must be a literal value; cell data is not read.",
+                        false, false, "", List.of(), false, true, false));
     }
 
     @Override public BindResponse onBind(TableBindParams p) {

@@ -28,6 +28,7 @@ import org.apache.arrow.vector.TinyIntVector;
 import org.apache.arrow.vector.VarBinaryVector;
 import org.apache.arrow.vector.VarCharVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
 import org.apache.arrow.vector.util.Text;
@@ -134,10 +135,25 @@ public final class WriteXlsxFunction implements TableInOutFunction {
     }
 
     @Override public List<ArgSpec> argumentSpecs() {
+        // ArgSpec canonical ctor: (name, position, arrowType, doc, isConst,
+        // hasDefault, defaultValue, typeBound, varargs, anyType, tableInput).
         return List.of(
-                ArgSpec.table("input", 0),
-                ArgSpec.named("sheet_name", Schemas.UTF8, "Sheet1"),
-                ArgSpec.named("header", Schemas.BOOL, "true"));
+                new ArgSpec(
+                        "input", 0, new ArrowType.Null(),
+                        "The input relation (a subquery) whose rows are serialized into the "
+                                + ".xlsx workbook; its column names become the optional header "
+                                + "row and each column maps to a typed Excel cell.",
+                        false, false, "", List.of(), false, false, true),
+                new ArgSpec(
+                        "sheet_name", -1, Schemas.UTF8,
+                        "Name of the worksheet to write the rows into; defaults to 'Sheet1' "
+                                + "when omitted.",
+                        true, true, "Sheet1", List.of(), false, false, false),
+                new ArgSpec(
+                        "header", -1, Schemas.BOOL,
+                        "Whether to write a bold first row containing the input column names; "
+                                + "true (the default) emits the header, false omits it.",
+                        true, true, "true", List.of(), false, false, false));
     }
 
     @Override public BindResponse onBind(TableInOutBindParams p) {

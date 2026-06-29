@@ -37,8 +37,10 @@ public final class TestSupport {
                 null, null, null, null, null, null,
                 new byte[0], null, null, null,
                 // vgi 0.4.0 added the AT-syntax (atUnit, atValue) and storage
-                // record components — unused by this in-process test driver.
-                null, null, null);
+                // record components; vgi 0.9.0 appended a trailing copyFrom
+                // (CopyFromContext) component — all unused by this in-process
+                // test driver.
+                null, null, null, null);
 
         TableProducerState state = fn.createProducer(init);
 

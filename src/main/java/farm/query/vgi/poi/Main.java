@@ -63,6 +63,7 @@ public final class Main {
         t.put(
                 "vgi.doc_md",
                 "# Excel Spreadsheet Read & Write in SQL\n\n"
+                        + "![Apache POI logo](https://poi.apache.org/images/project-header.png)\n\n"
                         + "**Query Microsoft Excel workbooks (`.xls` and `.xlsx`) directly from "
                         + "DuckDB SQL — read every cell with its value, type, and formula, and "
                         + "export any query result to a downloadable `.xlsx` file — powered by "

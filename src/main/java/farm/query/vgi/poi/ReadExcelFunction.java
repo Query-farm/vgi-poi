@@ -108,9 +108,20 @@ public final class ReadExcelFunction implements TableFunction {
     @Override public List<ArgSpec> argumentSpecs() {
         // Polymorphic doc arg: an any-typed positional so DuckDB binds both a
         // VARCHAR path and a BLOB/BINARY of bytes; disambiguated via DocInput.
+        // ArgSpec canonical ctor: (name, position, arrowType, doc, isConst,
+        // hasDefault, defaultValue, typeBound, varargs, anyType, tableInput).
         return List.of(
-                ArgSpec.any("doc", 0, List.of()),
-                ArgSpec.named("sheet", Schemas.UTF8, ""));
+                new ArgSpec(
+                        "doc", 0, new ArrowType.Null(),
+                        "The Excel workbook to read, given as either a filesystem path to an "
+                                + ".xls/.xlsx file or the raw workbook bytes. Must be a literal "
+                                + "value; a NULL or empty document yields no rows.",
+                        false, false, "", List.of(), false, true, false),
+                new ArgSpec(
+                        "sheet", -1, Schemas.UTF8,
+                        "Optional worksheet name to restrict the read to a single sheet; when "
+                                + "omitted or NULL, cells from every worksheet are returned.",
+                        true, true, "", List.of(), false, false, false));
     }
 
     @Override public BindResponse onBind(TableBindParams p) {

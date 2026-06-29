@@ -47,8 +47,9 @@ public final class Main {
         t.put("vgi.title", "Excel Spreadsheet Read & Write");
         t.put(
                 "vgi.keywords",
-                "excel, xlsx, xls, spreadsheet, workbook, apache poi, read excel, write excel, "
-                        + "worksheet, cells, formula, ooxml, ole2, import, export, blob");
+                "[\"excel\",\"xlsx\",\"xls\",\"spreadsheet\",\"workbook\",\"apache poi\","
+                        + "\"read excel\",\"write excel\",\"worksheet\",\"cells\",\"formula\","
+                        + "\"ooxml\",\"ole2\",\"import\",\"export\",\"blob\"]");
         t.put(
                 "vgi.doc_llm",
                 "Read and write Microsoft Excel workbooks from SQL via Apache POI. Open a .xls "
@@ -61,16 +62,51 @@ public final class Main {
                         + "results to Excel.");
         t.put(
                 "vgi.doc_md",
-                "# excel\n\nRead and write Microsoft Excel spreadsheets (.xls / .xlsx) from SQL, "
-                        + "backed by [Apache POI](https://poi.apache.org/).\n\n"
-                        + "- Table `read_excel(doc, sheet := NULL)` — one row per non-blank cell "
-                        + "(sheet, A1 ref, value, type, formula).\n"
-                        + "- Table `excel_sheets(doc)` — the workbook's worksheet directory.\n"
-                        + "- Table-in-out `write_xlsx(TABLE, ...)` — serialize a relation to an "
-                        + ".xlsx BLOB.\n"
-                        + "- Scalar `detect_excel(bytes)` — `'xls'`, `'xlsx'`, or NULL.\n\n"
-                        + "Both legacy `.xls` (HSSF) and modern `.xlsx` (XSSF) formats are "
-                        + "supported; inputs may be a file path or raw bytes.");
+                "# Excel Spreadsheet Read & Write in SQL\n\n"
+                        + "![Apache POI logo](https://poi.apache.org/images/project-header.png)\n\n"
+                        + "**Query Microsoft Excel workbooks (`.xls` and `.xlsx`) directly from "
+                        + "DuckDB SQL — read every cell with its value, type, and formula, and "
+                        + "export any query result to a downloadable `.xlsx` file — powered by "
+                        + "[Apache POI](https://poi.apache.org/).**\n\n"
+                        + "This extension turns spreadsheets into first-class SQL data sources. "
+                        + "It is built for data engineers, analysts, and application developers who "
+                        + "need to ingest Excel files, inspect workbook structure, or hand results "
+                        + "back to spreadsheet users — without leaving SQL or writing glue code in "
+                        + "Python or a BI tool. Both the legacy binary `.xls` format (OLE2 / HSSF) "
+                        + "and the modern Office Open XML `.xlsx` format (OOXML / XSSF) are "
+                        + "supported, and inputs may be supplied either as a file path or as raw "
+                        + "`BLOB` bytes already loaded into DuckDB.\n\n"
+                        + "Under the hood the worker embeds [Apache POI](https://github.com/apache/poi), "
+                        + "the mature, battle-tested Java library for reading and writing Microsoft "
+                        + "Office file formats. POI parses the workbook, evaluates formulas, and "
+                        + "preserves cell typing (numbers, dates, booleans, strings, and errors), "
+                        + "while the worker streams the results back to DuckDB over Apache Arrow. "
+                        + "Untrusted spreadsheets are opened behind zip-bomb and decompression-ratio "
+                        + "defenses, and external workbook links are never resolved, so importing "
+                        + "arbitrary `.xlsx` files stays safe. See the "
+                        + "[Apache POI spreadsheet documentation](https://poi.apache.org/components/spreadsheet/) "
+                        + "and the [HSSF/XSSF quick guide](https://poi.apache.org/components/spreadsheet/quick-guide.html) "
+                        + "for format details.\n\n"
+                        + "Four SQL functions make up the surface area:\n\n"
+                        + "- **`read_excel(doc, sheet := NULL)`** — a table function returning one "
+                        + "row per non-blank cell, with its sheet name, A1-style cell reference, "
+                        + "evaluated value, data type, and original formula text. Pass an optional "
+                        + "`sheet` name to read a single worksheet.\n"
+                        + "- **`excel_sheets(doc)`** — a table function that lists a workbook's "
+                        + "worksheet directory, including each sheet's index, name, and row/column "
+                        + "extents, for quick structural inspection.\n"
+                        + "- **`write_xlsx(TABLE, sheet_name := ..., header := ...)`** — a "
+                        + "table-in-out function that serializes any relation into an `.xlsx` "
+                        + "workbook returned as a `BLOB` you can write to disk or stream to a "
+                        + "client.\n"
+                        + "- **`detect_excel(bytes)`** — a scalar function that sniffs raw bytes "
+                        + "and returns `'xls'`, `'xlsx'`, or `NULL` for content-type detection.\n\n"
+                        + "Typical use cases include loading Excel exports into analytical "
+                        + "pipelines, auditing the sheets and formulas inside a workbook, and "
+                        + "generating polished `.xlsx` deliverables straight from a query. For "
+                        + "example: `SELECT sheet, cell_ref, value, type FROM "
+                        + "excel.main.read_excel('book.xlsx')` or `SELECT octet_length(xlsx) FROM "
+                        + "excel.main.write_xlsx((SELECT * FROM report), sheet_name := 'Report')`.");
         t.put("vgi.author", "Query.Farm");
         t.put("vgi.copyright", "Copyright 2026 Query Farm LLC - https://query.farm");
         t.put("vgi.license", "MIT");
@@ -110,13 +146,13 @@ public final class Main {
         t.put("vgi.title", "Excel — main");
         t.put(
                 "vgi.keywords",
-                "excel, xlsx, xls, read_excel, excel_sheets, write_xlsx, detect_excel, "
-                        + "spreadsheet, workbook, worksheet, cells, formula, apache poi");
+                "[\"excel\",\"xlsx\",\"xls\",\"read_excel\",\"excel_sheets\",\"write_xlsx\","
+                        + "\"detect_excel\",\"spreadsheet\",\"workbook\",\"worksheet\",\"cells\","
+                        + "\"formula\",\"apache poi\"]");
         // VGI123 classifying tags — BARE keys (not vgi.-namespaced).
         t.put("domain", "spreadsheet");
         t.put("category", "file-io");
         t.put("topic", "excel-read-write");
-        t.put("vgi.source_url", Meta.sourceUrl("Main.java"));
         t.put(
                 "vgi.doc_llm",
                 "Excel spreadsheet functions: read a workbook's cells (read_excel), list its "

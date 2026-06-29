@@ -38,23 +38,49 @@ final class Meta {
     }
 
     /**
-     * The five standard per-object discovery/description tags as an ordered map.
+     * The standard per-object discovery/description tags as an ordered map.
+     *
+     * <p>VGI138 requires {@code vgi.keywords} to be a JSON array of strings, so the
+     * comma-separated {@code keywords} argument is converted here. VGI139 forbids a
+     * per-object {@code vgi.source_url} (it belongs only on the catalog), so the
+     * {@code fileName} argument is retained for documentation/callsite clarity but
+     * no longer emits a source_url tag.
      *
      * @param title    human display name (add an extra word vs. the machine name)
      * @param docLlm   Markdown narrative for an LLM/agent audience
      * @param docMd    Markdown narrative for human docs (distinct content from docLlm)
-     * @param keywords comma-separated search terms / synonyms
+     * @param keywords comma-separated search terms / synonyms (emitted as a JSON array)
      * @param fileName implementing source file (relative to the package dir)
      */
     static Map<String, String> objectTags(
             String title, String docLlm, String docMd, String keywords, String fileName) {
+        // fileName retained for callsite documentation; no per-object source_url
+        // is emitted (VGI139 — source_url lives only on the catalog object).
+        assert fileName != null;
         var t = new LinkedHashMap<String, String>();
         t.put("vgi.title", title);
         t.put("vgi.doc_llm", docLlm);
         t.put("vgi.doc_md", docMd);
-        t.put("vgi.keywords", keywords);
-        t.put("vgi.source_url", sourceUrl(fileName));
+        t.put("vgi.keywords", keywordsJson(keywords));
         return t;
+    }
+
+    /** Convert a comma-separated keyword string into a JSON array of strings (VGI138). */
+    static String keywordsJson(String csv) {
+        var sb = new StringBuilder("[");
+        boolean first = true;
+        for (String raw : csv.split(",")) {
+            String k = raw.trim();
+            if (k.isEmpty()) {
+                continue;
+            }
+            if (!first) {
+                sb.append(",");
+            }
+            first = false;
+            sb.append('"').append(k.replace("\\", "\\\\").replace("\"", "\\\"")).append('"');
+        }
+        return sb.append("]").toString();
     }
 
     /** A {@link FunctionExample} with no expected output (the linter executes it). */

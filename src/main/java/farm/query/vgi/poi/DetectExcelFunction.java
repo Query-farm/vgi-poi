@@ -84,7 +84,13 @@ public final class DetectExcelFunction extends ScalarFn {
         return Schemas.UTF8;
     }
 
-    public void compute(@Vector(value = "doc", any = true) FieldVector in, VarCharVector out) {
+    public void compute(
+            @Vector(value = "doc", any = true,
+                    doc = "The candidate workbook content to inspect. Its leading magic bytes "
+                            + "are sniffed to classify the content as an OOXML/.xlsx or "
+                            + "legacy-OLE2/.xls workbook; NULL input yields NULL.")
+            FieldVector in,
+            VarCharVector out) {
         int n = in.getValueCount();
         for (int i = 0; i < n; i++) {
             if (in.isNull(i)) { out.setNull(i); continue; }

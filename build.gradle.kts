@@ -40,8 +40,8 @@ dependencies {
     // VGI Java SDK from Maven Central. `vgi` is the worker/catalog API and pulls
     // in farm.query:vgirpc transitively; vgirpc is declared explicitly because
     // the code imports farm.query.vgirpc.* directly.
-    implementation("farm.query:vgi:0.6.0")
-    implementation("farm.query:vgirpc:0.10.2")
+    implementation("farm.query:vgi:0.9.0")
+    implementation("farm.query:vgirpc:0.11.0")
 
     // Apache POI — Apache-2.0. `poi` reads/writes the legacy .xls (HSSF) format;
     // `poi-ooxml` adds the .xlsx (XSSF) format and pulls in xmlbeans + commons.

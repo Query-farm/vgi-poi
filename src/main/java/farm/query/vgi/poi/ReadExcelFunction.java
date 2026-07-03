@@ -102,7 +102,8 @@ public final class ReadExcelFunction implements TableFunction {
                         "read excel, read xlsx, read xls, spreadsheet, workbook, cells, "
                                 + "worksheet, formula, A1 reference, apache poi, import excel, "
                                 + "parse spreadsheet, ingest xlsx",
-                        "ReadExcelFunction.java"));
+                        "ReadExcelFunction.java"))
+                .withTag("vgi.category", "Reading");
     }
 
     @Override public List<ArgSpec> argumentSpecs() {

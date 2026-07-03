@@ -76,7 +76,8 @@ public final class DetectExcelFunction extends ScalarFn {
                         "detect excel, sniff format, magic bytes, file type, xlsx, xls, "
                                 + "ole2, ooxml, is excel, content detection, validate workbook, "
                                 + "apache poi",
-                        "DetectExcelFunction.java"));
+                        "DetectExcelFunction.java"))
+                .withTag("vgi.category", "Detection");
     }
 
     /** Always VARCHAR, regardless of the (any-typed) input. */

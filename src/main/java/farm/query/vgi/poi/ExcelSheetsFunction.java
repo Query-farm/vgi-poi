@@ -78,7 +78,8 @@ public final class ExcelSheetsFunction implements TableFunction {
                         "excel sheets, worksheets, list sheets, sheet names, workbook directory, "
                                 + "tabs, spreadsheet, xlsx, xls, apache poi, sheet count, "
                                 + "sheet dimensions",
-                        "ExcelSheetsFunction.java"));
+                        "ExcelSheetsFunction.java"))
+                .withTag("vgi.category", "Reading");
     }
 
     @Override public List<ArgSpec> argumentSpecs() {

@@ -131,7 +131,8 @@ public final class WriteXlsxFunction implements TableInOutFunction {
                         "write xlsx, export excel, to excel, serialize spreadsheet, workbook blob, "
                                 + "table to xlsx, save xlsx, generate excel, apache poi, "
                                 + "header row, sheet name",
-                        "WriteXlsxFunction.java"));
+                        "WriteXlsxFunction.java"))
+                .withTag("vgi.category", "Writing");
     }
 
     @Override public List<ArgSpec> argumentSpecs() {

@@ -4,7 +4,7 @@ plugins {
     java
     application
     // Fat/shaded JAR: `./gradlew shadowJar` -> build/libs/vgi-poi-<ver>-all.jar
-    id("com.gradleup.shadow") version "9.4.2"
+    id("com.gradleup.shadow") version "9.4.3"
 }
 
 group = "farm.query"
@@ -34,14 +34,14 @@ tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
 }
 
-val poiVersion = "5.3.0"
+val poiVersion = "5.5.1"
 
 dependencies {
     // VGI Java SDK from Maven Central. `vgi` is the worker/catalog API and pulls
     // in farm.query:vgirpc transitively; vgirpc is declared explicitly because
     // the code imports farm.query.vgirpc.* directly.
-    implementation("farm.query:vgi:0.9.0")
-    implementation("farm.query:vgirpc:0.11.0")
+    implementation("farm.query:vgi:0.10.0")
+    implementation("farm.query:vgirpc:0.12.0")
 
     // Apache POI — Apache-2.0. `poi` reads/writes the legacy .xls (HSSF) format;
     // `poi-ooxml` adds the .xlsx (XSSF) format and pulls in xmlbeans + commons.

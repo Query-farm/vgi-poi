@@ -87,33 +87,164 @@ public final class Main {
                         + "[Apache POI spreadsheet documentation](https://poi.apache.org/components/spreadsheet/) "
                         + "and the [HSSF/XSSF quick guide](https://poi.apache.org/components/spreadsheet/quick-guide.html) "
                         + "for format details.\n\n"
-                        + "Four SQL functions make up the surface area:\n\n"
-                        + "- **`read_excel(doc, sheet := NULL)`** — a table function returning one "
-                        + "row per non-blank cell, with its sheet name, A1-style cell reference, "
-                        + "evaluated value, data type, and original formula text. Pass an optional "
-                        + "`sheet` name to read a single worksheet.\n"
-                        + "- **`excel_sheets(doc)`** — a table function that lists a workbook's "
-                        + "worksheet directory, including each sheet's index, name, and row/column "
-                        + "extents, for quick structural inspection.\n"
-                        + "- **`write_xlsx(TABLE, sheet_name := ..., header := ...)`** — a "
-                        + "table-in-out function that serializes any relation into an `.xlsx` "
-                        + "workbook returned as a `BLOB` you can write to disk or stream to a "
-                        + "client.\n"
-                        + "- **`detect_excel(bytes)`** — a scalar function that sniffs raw bytes "
-                        + "and returns `'xls'`, `'xlsx'`, or `NULL` for content-type detection.\n\n"
-                        + "Typical use cases include loading Excel exports into analytical "
-                        + "pipelines, auditing the sheets and formulas inside a workbook, and "
-                        + "generating polished `.xlsx` deliverables straight from a query. For "
-                        + "example: `SELECT sheet, cell_ref, value, type FROM "
-                        + "excel.main.read_excel('book.xlsx')` or `SELECT octet_length(xlsx) FROM "
-                        + "excel.main.write_xlsx((SELECT * FROM report), sheet_name := 'Report')`.");
+                        + "## Key concepts\n\n"
+                        + "- **Rich, cell-level reads.** A workbook is surfaced not as opaque rows "
+                        + "but cell by cell, each with its worksheet, position, A1 reference, "
+                        + "evaluated value, data type, and (for formula cells) the underlying "
+                        + "formula text — so numbers, dates, booleans, strings, errors, and "
+                        + "computed values are all preserved and distinguishable.\n"
+                        + "- **Structure before data.** You can inspect a workbook's worksheet "
+                        + "directory — names and dimensions — cheaply, without materializing every "
+                        + "cell, then drill into a single sheet.\n"
+                        + "- **Path or bytes.** Reader inputs may be a filesystem path the worker "
+                        + "opens, or raw `BLOB` bytes already loaded into DuckDB, so the same "
+                        + "function works on files on disk and on content that arrived over the "
+                        + "wire.\n"
+                        + "- **Round-tripping to Excel.** Any query result can be serialized back "
+                        + "into a downloadable `.xlsx` workbook, and raw bytes can be sniffed to "
+                        + "confirm their format.\n\n"
+                        + "## When to use it\n\n"
+                        + "Reach for this worker when you need to ingest spreadsheet exports into an "
+                        + "analytical pipeline, audit the sheets and formulas inside a workbook, "
+                        + "validate untrusted uploads by content rather than file extension, or hand "
+                        + "polished Excel deliverables back to spreadsheet users — all without "
+                        + "leaving SQL or writing glue code in Python or a BI tool. List the schema "
+                        + "to discover the exact functions and their arguments.");
         t.put("vgi.author", "Query.Farm");
         t.put("vgi.copyright", "Copyright 2026 Query Farm LLC - https://query.farm");
         t.put("vgi.license", "MIT");
         t.put("vgi.support_contact", REPO + "/issues");
         t.put("vgi.support_policy_url", REPO + "/blob/main/README.md");
         t.put("vgi.executable_examples", executableExamples());
+        t.put("vgi.agent_test_tasks", agentTestTasksJson());
         return t;
+    }
+
+    /**
+     * VGI152/VGI920: a JSON array of analyst tasks {@code vgi-lint simulate} runs
+     * against the attached worker to measure how well an agent can actually use it.
+     *
+     * <p>Each task gives the analyst only a natural-language {@code prompt} that
+     * names the committed fixture workbook by its repo-relative path
+     * ({@code test/sql/data/sample.xlsx}, which the worker opens with CWD = repo
+     * root — the same path the SQL E2E suite uses). Grading compares the analyst's
+     * result to a deterministic {@code reference_sql} over that fixture,
+     * value-only (column names and row order ignored), so the suite is stable.
+     *
+     * <p>The fixture's Numbers sheet holds A1=2, B1=3, C1=A1+B1 (evaluates to 5),
+     * A2="hello", B2=TRUE, C2=a date (6 non-blank cells); the Other sheet holds
+     * A1="second sheet". These known values drive the references below.
+     */
+    private static String agentTestTasksJson() {
+        String path = "test/sql/data/sample.xlsx";
+        String has = "You are working with a VGI worker that reads and writes Excel spreadsheets. "
+                + "An Excel workbook is available to the worker at the repo-relative path `"
+                + path + "`.\n\n";
+        var tasks = new java.util.ArrayList<java.util.Map<String, Object>>();
+        tasks.add(agentTask(
+                "list_sheet_names",
+                has + "List the names of every worksheet in that workbook. Return one name per row.",
+                "SELECT name FROM excel.main.excel_sheets('" + path + "') ORDER BY idx",
+                "The workbook has two worksheets, named 'Numbers' and 'Other'."));
+        tasks.add(agentTask(
+                "evaluate_formula",
+                has + "Cell C1 of the 'Numbers' worksheet contains a formula. Return the single "
+                        + "value that formula evaluates to.",
+                "SELECT value FROM excel.main.read_excel('" + path + "', sheet := 'Numbers') "
+                        + "WHERE cell_ref = 'C1'",
+                "C1 is =A1+B1 over A1=2 and B1=3, so it evaluates to 5."));
+        tasks.add(agentTask(
+                "formula_text",
+                has + "Return the raw formula text (without a leading '=') stored in cell C1 of "
+                        + "the 'Numbers' worksheet.",
+                "SELECT formula FROM excel.main.read_excel('" + path + "', sheet := 'Numbers') "
+                        + "WHERE cell_ref = 'C1'",
+                "The formula text of C1 is 'A1+B1'."));
+        tasks.add(agentTask(
+                "count_cells_on_sheet",
+                has + "Count how many non-blank cells the 'Numbers' worksheet contains. Return the "
+                        + "single count.",
+                "SELECT count(*) FROM excel.main.read_excel('" + path + "', sheet := 'Numbers')",
+                "The Numbers sheet has 6 non-blank cells (A1, B1, C1, A2, B2, C2)."));
+        tasks.add(agentTask(
+                "detect_format",
+                has + "Determine the file format of that workbook's bytes — is it an .xlsx, an "
+                        + ".xls, or neither? Return the single format string.",
+                "SELECT excel.main.detect_excel((SELECT content FROM read_blob('" + path + "')))",
+                "The bytes are a modern OOXML workbook, so detection returns 'xlsx'."));
+        tasks.add(agentTask(
+                "export_and_verify",
+                has + "Separately, export the one-row relation SELECT 1 AS id, 'Ada' AS name to an "
+                        + ".xlsx workbook using this worker, then confirm the produced bytes are a "
+                        + "valid Excel workbook. Return the single detected format string.",
+                "SELECT excel.main.detect_excel(xlsx) FROM excel.main.write_xlsx("
+                        + "(SELECT 1 AS id, 'Ada' AS name))",
+                "write_xlsx produces a valid OOXML workbook, so detect_excel returns 'xlsx'."));
+        return tasksToJson(tasks);
+    }
+
+    private static java.util.Map<String, Object> agentTask(
+            String name, String prompt, String referenceSql, String successCriteria) {
+        var t = new java.util.LinkedHashMap<String, Object>();
+        t.put("name", name);
+        t.put("prompt", prompt);
+        t.put("reference_sql", referenceSql);
+        t.put("success_criteria", successCriteria);
+        // Every reference returns a single column, so grade on VALUES only:
+        // ignore the analyst's column alias and row order.
+        t.put("ignore_column_names", true);
+        t.put("unordered", true);
+        return t;
+    }
+
+    /** Minimal JSON serialization for the agent-test-task list (strings + booleans). */
+    private static String tasksToJson(java.util.List<java.util.Map<String, Object>> tasks) {
+        var sb = new StringBuilder("[");
+        for (int i = 0; i < tasks.size(); i++) {
+            if (i > 0) {
+                sb.append(',');
+            }
+            sb.append('{');
+            boolean firstKey = true;
+            for (var e : tasks.get(i).entrySet()) {
+                if (!firstKey) {
+                    sb.append(',');
+                }
+                firstKey = false;
+                sb.append('"').append(e.getKey()).append("\":");
+                Object v = e.getValue();
+                if (v instanceof Boolean) {
+                    sb.append(v.toString());
+                } else {
+                    sb.append('"').append(jsonEscape(v.toString())).append('"');
+                }
+            }
+            sb.append('}');
+        }
+        return sb.append(']').toString();
+    }
+
+    /** Escape a Java string for embedding as a JSON string literal. */
+    private static String jsonEscape(String s) {
+        var sb = new StringBuilder(s.length() + 16);
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            switch (c) {
+                case '"' -> sb.append("\\\"");
+                case '\\' -> sb.append("\\\\");
+                case '\n' -> sb.append("\\n");
+                case '\r' -> sb.append("\\r");
+                case '\t' -> sb.append("\\t");
+                default -> {
+                    if (c < 0x20) {
+                        sb.append(String.format("\\u%04x", (int) c));
+                    } else {
+                        sb.append(c);
+                    }
+                }
+            }
+        }
+        return sb.toString();
     }
 
     /**
@@ -161,9 +292,34 @@ public final class Main {
                         + "Handles both .xls and .xlsx via Apache POI.");
         t.put(
                 "vgi.doc_md",
-                "Excel read/write functions over Apache POI — cell-level reads, worksheet "
-                        + "listing, .xlsx export, and format detection for `.xls` and `.xlsx`. "
-                        + "Reader inputs may be a file path or raw `BLOB` bytes.");
+                "# Excel functions\n\n"
+                        + "Read and write Microsoft Excel workbooks (`.xls` and `.xlsx`) directly "
+                        + "in SQL over Apache Arrow, powered by "
+                        + "[Apache POI](https://poi.apache.org/).\n\n"
+                        + "The functions in this schema cover three areas:\n\n"
+                        + "- **Reading** — stream a workbook's non-blank cells as rows (with type, "
+                        + "A1 reference, evaluated value, and formula text), and list its "
+                        + "worksheet directory with per-sheet dimensions.\n"
+                        + "- **Writing** — serialize any SQL relation into a downloadable `.xlsx` "
+                        + "workbook returned as a `BLOB`.\n"
+                        + "- **Detection** — sniff raw bytes to classify them as `.xlsx`, `.xls`, "
+                        + "or neither, without trusting a file name.\n\n"
+                        + "Reader inputs are polymorphic: pass a filesystem path the worker opens, "
+                        + "or a raw `BLOB` of workbook bytes already loaded into DuckDB. Formula "
+                        + "cells are evaluated, cell typing is preserved, and a corrupt or "
+                        + "non-spreadsheet input yields no rows (or `NULL`) rather than failing the "
+                        + "query.");
+        // VGI413: an ordered category registry for the schema; each function
+        // carries a matching vgi.category tag so the listing renders as navigable
+        // sections (Reading / Writing / Detection).
+        t.put(
+                "vgi.categories",
+                "[{\"name\": \"Reading\", \"description\": \"Read an Excel workbook's cells as "
+                        + "rows and list its worksheets, from a file path or raw BLOB bytes.\"},"
+                        + "{\"name\": \"Writing\", \"description\": \"Serialize a SQL relation into "
+                        + "a downloadable .xlsx workbook BLOB.\"},"
+                        + "{\"name\": \"Detection\", \"description\": \"Identify whether raw bytes "
+                        + "are an .xlsx, .xls, or non-Excel payload by content.\"}]");
         // VGI506: representative catalog-qualified SQL (plain string).
         t.put(
                 "vgi.example_queries",

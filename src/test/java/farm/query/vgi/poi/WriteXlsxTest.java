@@ -93,7 +93,7 @@ class WriteXlsxTest {
         Arguments args = new Arguments(List.of(), named, List.of());
         var init = new farm.query.vgi.tableinout.TableInOutInitParams(
                 fn.name(), args, inputSchema, PoiSchemas.WRITE_XLSX_SCHEMA,
-                Map.of(), Allocators.root(), null);
+                Map.<String, Object>of(), Allocators.root(), null, null);
         var state = fn.createExchange(init);
         OutputCollector collector = new OutputCollector(PoiSchemas.WRITE_XLSX_SCHEMA, "test", true);
 

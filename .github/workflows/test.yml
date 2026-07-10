@@ -72,7 +72,6 @@ jobs:
       - name: vgi-lint
         uses: Query-farm/vgi-lint-check@v1
         with:
-          version: "0.37.0"
           # The build.gradle.kts version is 0.1.0-SNAPSHOT, so the fat-JAR name is
           # deterministic; ${{ github.workspace }} expands to an absolute path.
           location: "java -jar ${{ github.workspace }}/build/libs/vgi-poi-0.1.0-SNAPSHOT-all.jar"

@@ -41,13 +41,15 @@ public final class ExcelSheetsFunction implements TableFunction {
                                         + Examples.XLSX_BLOB + "'::BLOB) ORDER BY idx;",
                                 "List every worksheet of a workbook (passed as inline bytes) with "
                                         + "its dimensions.")))
-                .withTag("vgi.result_columns_md",
-                        "| column | type | description |\n"
-                                + "|---|---|---|\n"
-                                + "| `idx` | INTEGER | 0-based sheet ordinal within the workbook. |\n"
-                                + "| `name` | VARCHAR | Worksheet name. |\n"
-                                + "| `rows` | INTEGER | Number of rows (last row index + 1). |\n"
-                                + "| `cols` | INTEGER | Maximum column count across the sheet's rows. |")
+                .withTag("vgi.result_columns_schema",
+                        "[{\"name\":\"idx\",\"type\":\"INTEGER\",\"description\":\"0-based sheet ordinal "
+                                + "within the workbook.\"},"
+                                + "{\"name\":\"name\",\"type\":\"VARCHAR\",\"description\":\"Worksheet "
+                                + "name.\"},"
+                                + "{\"name\":\"rows\",\"type\":\"INTEGER\",\"description\":\"Number of rows "
+                                + "(last row index + 1).\"},"
+                                + "{\"name\":\"cols\",\"type\":\"INTEGER\",\"description\":\"Maximum column "
+                                + "count across the sheet's rows.\"}]")
                 .withTags(Meta.objectTags(
                         "List Excel Worksheets",
                         "## excel_sheets\n\n"
@@ -66,12 +68,10 @@ public final class ExcelSheetsFunction implements TableFunction {
                         "Lists the worksheets of a Microsoft Excel workbook (`.xls` or `.xlsx`), "
                                 + "returning each sheet's ordinal, name, row count, and column "
                                 + "count.\n\n"
-                                + "**Usage**\n\n"
-                                + "```sql\n"
-                                + "SELECT idx, name, rows, cols\n"
-                                + "FROM excel.main.excel_sheets('book.xlsx')\n"
-                                + "ORDER BY idx;\n"
-                                + "```\n\n"
+                                + "**Usage**: give it a filesystem path to an `.xls`/`.xlsx` file, or "
+                                + "the raw workbook bytes as a `BLOB` literal, and it returns one row "
+                                + "per worksheet ordered by ordinal. Runnable, fully-qualified examples "
+                                + "are attached to this object's metadata.\n\n"
                                 + "**Notes**: a lightweight companion to `read_excel` for discovering "
                                 + "sheet names and dimensions; supports both `.xls` (HSSF) and `.xlsx` "
                                 + "(XSSF); inputs may be a file path or raw bytes.",

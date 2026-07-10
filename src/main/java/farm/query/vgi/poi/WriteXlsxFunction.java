@@ -89,11 +89,10 @@ public final class WriteXlsxFunction implements TableInOutFunction {
                                         + "(SELECT 1 AS id, 'Ada' AS name));",
                                 "Round-trip check: the BLOB written by write_xlsx is detected as an "
                                         + "'xlsx' workbook.")))
-                .withTag("vgi.result_columns_md",
-                        "| column | type | description |\n"
-                                + "|---|---|---|\n"
-                                + "| `xlsx` | BLOB | The generated `.xlsx` workbook bytes (one row per "
-                                + "input batch; the last row is the complete workbook). |")
+                .withTag("vgi.result_columns_schema",
+                        "[{\"name\":\"xlsx\",\"type\":\"BLOB\",\"description\":\"The generated .xlsx "
+                                + "workbook bytes (one row per input batch; the last row is the complete "
+                                + "workbook).\"}]")
                 .withTags(Meta.objectTags(
                         "Write Relation To Xlsx Workbook",
                         "## write_xlsx\n\n"
@@ -118,13 +117,11 @@ public final class WriteXlsxFunction implements TableInOutFunction {
                         "Serializes a SQL relation into a downloadable Microsoft Excel `.xlsx` "
                                 + "workbook, returned as a `BLOB`, with typed cells and an optional "
                                 + "bold header row.\n\n"
-                                + "**Usage**\n\n"
-                                + "```sql\n"
-                                + "SELECT octet_length(xlsx) AS bytes\n"
-                                + "FROM excel.main.write_xlsx(\n"
-                                + "  (SELECT id, name FROM people),\n"
-                                + "  sheet_name := 'People', header := true);\n"
-                                + "```\n\n"
+                                + "**Usage**: wrap the relation you want to export as the input "
+                                + "subquery, optionally set `sheet_name` and toggle `header`, then read "
+                                + "back the `xlsx` `BLOB` column and size it with `octet_length`. "
+                                + "Runnable, fully-qualified examples are attached to this object's "
+                                + "metadata.\n\n"
                                 + "**Notes**: numeric/boolean/date columns keep their Excel cell "
                                 + "types; use `octet_length` (not `length`) on the BLOB; for a "
                                 + "multi-batch input the last emitted row is the complete workbook.",

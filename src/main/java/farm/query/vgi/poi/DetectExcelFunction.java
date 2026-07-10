@@ -51,25 +51,36 @@ public final class DetectExcelFunction extends ScalarFn {
                 .withTags(Meta.objectTags(
                         "Detect Excel File Format",
                         "## detect_excel\n\n"
-                                + "A scalar that **sniffs the magic bytes** of a `BLOB` and returns "
-                                + "`'xlsx'` for a modern OOXML workbook (the ZIP/`PK` container), "
-                                + "`'xls'` for a legacy OLE2/HSSF workbook, or `NULL` when the bytes "
-                                + "are neither. `NULL` input returns `NULL`.\n\n"
-                                + "Detection is **content-based** — it does not look at a file name or "
-                                + "extension — so it works on bytes that arrived over the wire or from "
-                                + "another function. Use it to validate untrusted uploads before "
-                                + "calling `read_excel`, to branch on workbook format, or to confirm "
-                                + "that `write_xlsx` produced a valid workbook. A non-Excel BLOB is "
-                                + "reported as `NULL` rather than raising an error.",
-                        "Identifies whether a `BLOB` is a Microsoft Excel workbook by inspecting its "
-                                + "magic bytes, returning `'xlsx'`, `'xls'`, or `NULL`.\n\n"
-                                + "**Usage**\n\n"
-                                + "```sql\n"
-                                + "-- format of a file's bytes\n"
-                                + "SELECT excel.main.detect_excel((SELECT content FROM read_blob('book.xlsx')));\n"
-                                + "-- guard before reading\n"
-                                + "SELECT excel.main.detect_excel(my_blob) IS NOT NULL AS is_excel;\n"
-                                + "```\n\n"
+                                + "A scalar that classifies a `BLOB` as `'xlsx'` (a modern OOXML/XSSF "
+                                + "workbook), `'xls'` (a legacy OLE2/HSSF workbook), or `NULL`. It is a "
+                                + "**two-stage** check, not merely a magic-byte peek: it first matches "
+                                + "the leading signature (`PK\\x03\\x04` for OOXML, the OLE2 header "
+                                + "`D0 CF 11 E0` for `.xls`), then **actually opens the bytes with "
+                                + "Apache POI** to confirm they parse as a spreadsheet. That second "
+                                + "stage is why a plain `.zip`, a `.docx`, or a `.pptx` — all of which "
+                                + "share the `PK` prefix — correctly return `NULL` instead of a false "
+                                + "`'xlsx'`.\n\n"
+                                + "`NULL` is returned for every non-workbook input, and the distinct "
+                                + "paths that produce it are: the input is `NULL`; the `BLOB` is "
+                                + "shorter than the 8-byte minimum; the leading signature matches no "
+                                + "known format; or the signature matches but POI fails to open the "
+                                + "bytes as a workbook (truncated, corrupt, or a different `PK`/OLE2 "
+                                + "format). All of these collapse to a single `NULL` result — the "
+                                + "function never raises. Detection is **content-based** and ignores "
+                                + "any file name or extension, so it works on bytes that arrived over "
+                                + "the wire or from another function. Use it to validate untrusted "
+                                + "uploads before calling `read_excel`, to branch on workbook format, "
+                                + "or to confirm that `write_xlsx` produced a valid workbook.",
+                        "Identifies whether a `BLOB` is a Microsoft Excel workbook by matching its "
+                                + "leading signature and then opening it with Apache POI to confirm, "
+                                + "returning `'xlsx'`, `'xls'`, or `NULL`. Because it opens the bytes "
+                                + "(rather than trusting the `PK`/OLE2 prefix alone), a plain `.zip` or "
+                                + "a `.docx` returns `NULL`, not a false `'xlsx'`.\n\n"
+                                + "**Usage**: pass it any `BLOB` — a file's bytes loaded with "
+                                + "`read_blob`, an upload, or the output of `write_xlsx` — and it "
+                                + "classifies the content, so a non-NULL result guards a workbook before "
+                                + "you read it. Runnable, fully-qualified examples are attached to this "
+                                + "object's metadata.\n\n"
                                 + "**Notes**: detection is by content, not extension; legacy `.xls` "
                                 + "(OLE2) and modern `.xlsx` (OOXML) are distinguished; anything else "
                                 + "yields `NULL`.",
@@ -87,9 +98,11 @@ public final class DetectExcelFunction extends ScalarFn {
 
     public void compute(
             @Vector(value = "doc", any = true,
-                    doc = "The candidate workbook content to inspect. Its leading magic bytes "
-                            + "are sniffed to classify the content as an OOXML/.xlsx or "
-                            + "legacy-OLE2/.xls workbook; NULL input yields NULL.")
+                    doc = "The candidate workbook content to inspect. Its leading signature is "
+                            + "matched and then the bytes are opened with POI to confirm, "
+                            + "classifying the content as an OOXML/.xlsx or legacy-OLE2/.xls "
+                            + "workbook; anything else (including NULL or bytes too short to "
+                            + "classify) yields NULL.")
             FieldVector in,
             VarCharVector out) {
         int n = in.getValueCount();

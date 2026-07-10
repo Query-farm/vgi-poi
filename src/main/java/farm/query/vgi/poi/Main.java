@@ -39,7 +39,92 @@ public final class Main {
                 .registerTable(new ReadExcelFunction())
                 .registerTable(new ExcelSheetsFunction())
                 .registerTableInOut(new WriteXlsxFunction())
-                .registerScalar(new DetectExcelFunction());
+                .registerScalar(new DetectExcelFunction())
+                .registerView(formatsView());
+    }
+
+    /**
+     * A small, credential-free browsable reference view (VGI146): every function
+     * here needs arguments before it returns data, so this curated registry gives
+     * an agent a zero-argument entry point that documents exactly which Excel
+     * formats the worker understands — the precise strings {@code detect_excel}
+     * returns, whether each can be read by {@code read_excel} and written by
+     * {@code write_xlsx}, and its on-disk container. It is defined as an inline
+     * {@code VALUES} relation, so scanning it never touches the filesystem or POI.
+     */
+    private static farm.query.vgi.catalog.View formatsView() {
+        String definition =
+                "SELECT format, description, container, readable, writable "
+                        + "FROM (VALUES "
+                        + "('xlsx', 'Office Open XML workbook (OOXML / XSSF)', "
+                        + "'ZIP / PK-signature container', true, true), "
+                        + "('xls', 'Legacy binary workbook (OLE2 / HSSF)', "
+                        + "'OLE2 compound document', true, false)"
+                        + ") AS t(format, description, container, readable, writable) "
+                        + "ORDER BY format";
+        var columnComments = new java.util.LinkedHashMap<String, String>();
+        columnComments.put(
+                "format", "Format tag — the exact string detect_excel returns for this workbook kind "
+                        + "('xlsx' or 'xls').");
+        columnComments.put("description", "Human-readable name of the Excel format and its POI backend.");
+        columnComments.put("container", "The on-disk container the format uses (ZIP/PK vs OLE2).");
+        columnComments.put(
+                "readable", "TRUE when read_excel and excel_sheets can parse this format.");
+        columnComments.put(
+                "writable", "TRUE when write_xlsx can produce this format (only .xlsx is writable).");
+        return new farm.query.vgi.catalog.View(
+                "main", "formats", definition,
+                "The Excel workbook formats this worker understands: the exact tag detect_excel "
+                        + "returns for each, whether it can be read (read_excel / excel_sheets) and "
+                        + "written (write_xlsx), and its on-disk container. A credential-free, "
+                        + "zero-argument entry point for discovering the worker's format support.",
+                formatsViewTags())
+                .withColumnComments(columnComments);
+    }
+
+    private static java.util.Map<String, String> formatsViewTags() {
+        var t = new java.util.LinkedHashMap<String, String>();
+        t.put("vgi.title", "Supported Excel Formats");
+        t.put(
+                "vgi.doc_llm",
+                "A static reference relation listing the Excel workbook formats this worker "
+                        + "supports. Each row gives the format tag (the exact value detect_excel "
+                        + "returns — 'xlsx' or 'xls'), a human description, the on-disk container, and "
+                        + "boolean readable/writable flags. Use it as a zero-argument entry point to "
+                        + "learn which formats can be read and which can be written before calling the "
+                        + "read/write/detect functions.");
+        t.put(
+                "vgi.doc_md",
+                "# Supported Excel formats\n\n"
+                        + "A curated, zero-argument reference relation you can browse to learn which "
+                        + "Excel formats this worker handles — no file or credential required.\n\n"
+                        + "Each row describes one workbook format:\n\n"
+                        + "- **format** — the exact tag `detect_excel` returns (`xlsx` or `xls`).\n"
+                        + "- **description** — the format's full name and Apache POI backend "
+                        + "(XSSF for OOXML, HSSF for legacy OLE2).\n"
+                        + "- **container** — how the bytes are packaged on disk.\n"
+                        + "- **readable** / **writable** — whether `read_excel` / `excel_sheets` can "
+                        + "parse it and whether `write_xlsx` can produce it.\n\n"
+                        + "Both formats are readable; only the modern `.xlsx` format is writable. Query "
+                        + "this relation to branch on format capabilities before reading or writing a "
+                        + "workbook.");
+        t.put(
+                "vgi.keywords",
+                "[\"formats\",\"excel formats\",\"xlsx\",\"xls\",\"supported\",\"capabilities\","
+                        + "\"readable\",\"writable\",\"registry\",\"reference\",\"ooxml\",\"ole2\"]");
+        t.put("vgi.category", "Reference");
+        // VGI123 classifying tags — BARE keys (not vgi.-namespaced).
+        t.put("domain", "spreadsheet");
+        t.put("category", "reference");
+        t.put("topic", "excel-format-support");
+        t.put(
+                "vgi.example_queries",
+                "[{\"sql\":\"SELECT format, description, container FROM excel.main.formats "
+                        + "ORDER BY format;\",\"description\":\"Browse every Excel format the worker "
+                        + "understands with its container.\"},"
+                        + "{\"sql\":\"SELECT format FROM excel.main.formats WHERE writable ORDER BY "
+                        + "format;\",\"description\":\"List only the formats write_xlsx can produce.\"}]");
+        return t;
     }
 
     private static java.util.Map<String, String> catalogTags() {
@@ -166,6 +251,12 @@ public final class Main {
                         + "single count.",
                 "SELECT count(*) FROM excel.main.read_excel('" + path + "', sheet := 'Numbers')",
                 "The Numbers sheet has 6 non-blank cells (A1, B1, C1, A2, B2, C2)."));
+        tasks.add(agentTask(
+                "writable_formats",
+                "Using only this worker's catalog (do not open the workbook), determine which Excel "
+                        + "workbook formats this worker can WRITE. Return one format tag per row.",
+                "SELECT format FROM excel.main.formats WHERE writable ORDER BY format",
+                "Only the modern .xlsx (OOXML) format is writable; .xls is read-only."));
         tasks.add(agentTask(
                 "detect_format",
                 has + "Determine the file format of that workbook's bytes — is it an .xlsx, an "
@@ -319,7 +410,9 @@ public final class Main {
                         + "{\"name\": \"Writing\", \"description\": \"Serialize a SQL relation into "
                         + "a downloadable .xlsx workbook BLOB.\"},"
                         + "{\"name\": \"Detection\", \"description\": \"Identify whether raw bytes "
-                        + "are an .xlsx, .xls, or non-Excel payload by content.\"}]");
+                        + "are an .xlsx, .xls, or non-Excel payload by content.\"},"
+                        + "{\"name\": \"Reference\", \"description\": \"Browsable, zero-argument "
+                        + "registries describing the worker's format support.\"}]");
         // VGI506: representative catalog-qualified SQL (plain string).
         t.put(
                 "vgi.example_queries",

@@ -28,8 +28,10 @@ public final class PoiSchemas {
             commented("row", Schemas.INT32, "0-based row index of the cell."),
             commented("col", Schemas.INT32, "0-based column index of the cell."),
             commented("cell_ref", Schemas.UTF8, "A1-style cell reference (e.g. B3)."),
-            commented("value", Schemas.UTF8, "Cell value as text; for formulas, the evaluated result."),
-            commented("type", Schemas.UTF8, "Cell type: NUMERIC, STRING, BOOLEAN, FORMULA, BLANK, or ERROR."),
+            commented("value", Schemas.UTF8, "Cell value as text (numbers without a trailing .0, dates "
+                    + "ISO-8601, booleans true/false); for formulas, the evaluated result."),
+            commented("type", Schemas.UTF8, "Cell type: NUMERIC, STRING, BOOLEAN, FORMULA, or ERROR "
+                    + "(blank cells are skipped)."),
             commented("formula", Schemas.UTF8, "Formula text for FORMULA cells (without '='), else NULL.")));
 
     /** excel_sheets output: one row per worksheet. */

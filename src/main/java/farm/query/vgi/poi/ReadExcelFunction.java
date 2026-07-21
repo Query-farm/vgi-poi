@@ -39,10 +39,10 @@ public final class ReadExcelFunction implements TableFunction {
                 .withCategories("spreadsheet", "excel", "poi")
                 .withTag("vgi.example_queries",
                         "[{\"sql\":\"SELECT sheet, cell_ref, value, type FROM excel.main.read_excel('"
-                                + Examples.XLSX_BLOB + "'::BLOB) ORDER BY cell_ref;\",\"description\":"
+                                + Examples.XLSX_BLOB_JSON + "'::BLOB) ORDER BY cell_ref;\",\"description\":"
                                 + "\"Read every non-blank cell of a workbook (inline bytes) as rows.\"},"
                                 + "{\"sql\":\"SELECT count(*) AS cells FROM excel.main.read_excel('"
-                                + Examples.XLSX_BLOB + "'::BLOB);\",\"description\":\"Count the "
+                                + Examples.XLSX_BLOB_JSON + "'::BLOB);\",\"description\":\"Count the "
                                 + "non-blank cells in a workbook.\"}]")
                 .withExamples(Meta.examples(
                         Meta.example(
@@ -87,7 +87,7 @@ public final class ReadExcelFunction implements TableFunction {
                                 + "and the raw `formula` text for formula cells. `type` is one of "
                                 + "`NUMERIC`, `STRING`, `BOOLEAN`, `FORMULA`, or `ERROR` — **blank "
                                 + "cells are skipped entirely**, so `BLANK` never appears.\n\n"
-                                + "**`value` is always VARCHAR text**, so cast it to work with it "
+                                + "**`value` is always `VARCHAR` text**, so cast it to work with it "
                                 + "numerically or temporally. The rendering rules are: numbers with no "
                                 + "fraction drop the trailing `.0` (`3.0` -> `3`); date-formatted "
                                 + "numeric cells render as ISO-8601 `yyyy-MM-ddTHH:mm:ss`; booleans "
@@ -104,7 +104,7 @@ public final class ReadExcelFunction implements TableFunction {
                         "Reads a Microsoft Excel workbook (`.xls` or `.xlsx`) and returns one row "
                                 + "for every non-blank cell, including its worksheet, position, "
                                 + "A1 reference, evaluated value, type, and (for formula cells) the "
-                                + "formula text. `value` is always VARCHAR — numbers render without a "
+                                + "formula text. `value` is always `VARCHAR` — numbers render without a "
                                 + "trailing `.0`, dates as ISO-8601, booleans as `true`/`false` — so "
                                 + "cast it (`value::DOUBLE`, `value::TIMESTAMP`) to compute on it. The "
                                 + "`type` column is one of `NUMERIC`, `STRING`, `BOOLEAN`, `FORMULA`, "

@@ -138,10 +138,10 @@ public final class Main {
         t.put(
                 "vgi.doc_llm",
                 "Read and write Microsoft Excel workbooks from SQL via Apache POI. Open a .xls "
-                        + "(legacy OLE2/HSSF) or .xlsx (OOXML/XSSF) file or BLOB and stream every "
+                        + "(legacy OLE2/HSSF) or .xlsx (OOXML/XSSF) file or `BLOB` and stream every "
                         + "non-blank cell with its sheet, A1 reference, evaluated value, type, and "
                         + "formula text; list a workbook's worksheets with their row/column counts; "
-                        + "serialize a query result into a downloadable .xlsx BLOB; and sniff bytes "
+                        + "serialize a query result into a downloadable .xlsx `BLOB`; and sniff bytes "
                         + "to tell whether they are an .xls, .xlsx, or neither. Use for ingesting "
                         + "spreadsheet data, inspecting workbook structure, and exporting query "
                         + "results to Excel.");
@@ -193,8 +193,7 @@ public final class Main {
                         + "analytical pipeline, audit the sheets and formulas inside a workbook, "
                         + "validate untrusted uploads by content rather than file extension, or hand "
                         + "polished Excel deliverables back to spreadsheet users — all without "
-                        + "leaving SQL or writing glue code in Python or a BI tool. List the schema "
-                        + "to discover the exact functions and their arguments.");
+                        + "leaving SQL or writing glue code in Python or a BI tool.");
         t.put("vgi.author", "Query.Farm");
         t.put("vgi.copyright", "Copyright 2026 Query Farm LLC - https://query.farm");
         t.put("vgi.license", "MIT");
@@ -378,7 +377,7 @@ public final class Main {
         t.put(
                 "vgi.doc_llm",
                 "Excel spreadsheet functions: read a workbook's cells (read_excel), list its "
-                        + "worksheets (excel_sheets), write a relation to an .xlsx BLOB "
+                        + "worksheets (excel_sheets), write a relation to an .xlsx `BLOB` "
                         + "(write_xlsx), and detect whether bytes are an Excel file (detect_excel). "
                         + "Handles both .xls and .xlsx via Apache POI.");
         t.put(
@@ -413,14 +412,24 @@ public final class Main {
                         + "are an .xlsx, .xls, or non-Excel payload by content.\"},"
                         + "{\"name\": \"Reference\", \"description\": \"Browsable, zero-argument "
                         + "registries describing the worker's format support.\"}]");
-        // VGI506: representative catalog-qualified SQL (plain string).
+        // VGI515: described, catalog-qualified example queries — a JSON list of
+        // {description, sql}, each example projecting explicit columns (never a
+        // bare SELECT *, VGI514).
         t.put(
                 "vgi.example_queries",
-                "SELECT * FROM excel.main.read_excel('book.xlsx');\n"
-                        + "SELECT idx, name, rows, cols FROM excel.main.excel_sheets('book.xlsx');\n"
-                        + "SELECT octet_length(xlsx) FROM excel.main.write_xlsx("
-                        + "(SELECT 1 AS id, 'Ada' AS name), sheet_name := 'People');\n"
-                        + "SELECT excel.main.detect_excel((SELECT content FROM read_blob('book.xlsx')));");
+                "[{\"description\":\"Read a workbook's non-blank cells, projecting the sheet, "
+                        + "A1 reference, value and type of each.\",\"sql\":\"SELECT sheet, cell_ref, "
+                        + "value, type FROM excel.main.read_excel('book.xlsx');\"},"
+                        + "{\"description\":\"List a workbook's worksheets with their dimensions.\","
+                        + "\"sql\":\"SELECT idx, name, rows, cols FROM "
+                        + "excel.main.excel_sheets('book.xlsx');\"},"
+                        + "{\"description\":\"Export a query result to an .xlsx workbook BLOB on a "
+                        + "named sheet and size the bytes.\",\"sql\":\"SELECT octet_length(xlsx) AS "
+                        + "bytes FROM excel.main.write_xlsx((SELECT 1 AS id, 'Ada' AS name), "
+                        + "sheet_name := 'People');\"},"
+                        + "{\"description\":\"Detect the format of a file's bytes — 'xlsx', 'xls', or "
+                        + "NULL.\",\"sql\":\"SELECT excel.main.detect_excel((SELECT content FROM "
+                        + "read_blob('book.xlsx')));\"}]");
         return t;
     }
 

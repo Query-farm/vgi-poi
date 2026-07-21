@@ -33,7 +33,7 @@ public final class ExcelSheetsFunction implements TableFunction {
                 .withCategories("spreadsheet", "excel", "poi")
                 .withTag("vgi.example_queries",
                         "[{\"sql\":\"SELECT idx, name, rows, cols FROM excel.main.excel_sheets('"
-                                + Examples.XLSX_BLOB + "'::BLOB) ORDER BY idx;\",\"description\":\"List "
+                                + Examples.XLSX_BLOB_JSON + "'::BLOB) ORDER BY idx;\",\"description\":\"List "
                                 + "every worksheet of a workbook (inline bytes) with its dimensions.\"}]")
                 .withExamples(Meta.examples(
                         Meta.example(

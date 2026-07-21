@@ -110,7 +110,7 @@ public final class WriteXlsxFunction implements TableInOutFunction {
                                 + "**Streaming caveat**: the table-in-out transport delivers input "
                                 + "batches with no separate finalize signal, so the workbook-so-far is "
                                 + "emitted after each input batch. A typical single-batch input yields "
-                                + "exactly one BLOB row containing the whole relation; an input large "
+                                + "exactly one `BLOB` row containing the whole relation; an input large "
                                 + "enough to span multiple Arrow batches yields one row per batch, the "
                                 + "**last** of which is the complete workbook. Pair it with "
                                 + "`detect_excel` to validate the output.",
@@ -123,7 +123,7 @@ public final class WriteXlsxFunction implements TableInOutFunction {
                                 + "Runnable, fully-qualified examples are attached to this object's "
                                 + "metadata.\n\n"
                                 + "**Notes**: numeric/boolean/date columns keep their Excel cell "
-                                + "types; use `octet_length` (not `length`) on the BLOB; for a "
+                                + "types; use `octet_length` (not `length`) on the `BLOB`; for a "
                                 + "multi-batch input the last emitted row is the complete workbook.",
                         "write xlsx, export excel, to excel, serialize spreadsheet, workbook blob, "
                                 + "table to xlsx, save xlsx, generate excel, apache poi, "

@@ -104,33 +104,41 @@ case "$TRANSPORT" in
     ;;
 
   http)
-    JAR="$(resolve_jar)"
-    PORT="${HTTP_PORT:-18110}"
-    echo "Starting fat JAR in --http mode on 127.0.0.1:$PORT (cwd=$STAGE) ..."
-    ( cd "$STAGE" && exec java -jar "$JAR" --http --host 127.0.0.1 --port "$PORT" ) \
-      > "$STAGE/worker-http.log" 2>&1 &
-    WORKER_PID=$!
+    # Honor a pre-launched HTTP worker (e.g. a running container in the docker
+    # image_test): if VGI_POI_WORKER already points at an http(s):// URL, use it
+    # as-is and skip spawning a local fat JAR (there is no jar on that runner).
+    # The awk preprocessor still injects httpfs because TRANSPORT=http.
+    if printf '%s' "${VGI_POI_WORKER:-}" | grep -Eq '^https?://'; then
+      echo "Using pre-launched HTTP worker at $VGI_POI_WORKER"
+    else
+      JAR="$(resolve_jar)"
+      PORT="${HTTP_PORT:-18110}"
+      echo "Starting fat JAR in --http mode on 127.0.0.1:$PORT (cwd=$STAGE) ..."
+      ( cd "$STAGE" && exec java -jar "$JAR" --http --host 127.0.0.1 --port "$PORT" ) \
+        > "$STAGE/worker-http.log" 2>&1 &
+      WORKER_PID=$!
 
-    ready=""
-    for _ in $(seq 1 60); do
-      if ! kill -0 "$WORKER_PID" 2>/dev/null; then
-        echo "::error::http worker exited during startup; log follows:" >&2
+      ready=""
+      for _ in $(seq 1 60); do
+        if ! kill -0 "$WORKER_PID" 2>/dev/null; then
+          echo "::error::http worker exited during startup; log follows:" >&2
+          cat "$STAGE/worker-http.log" >&2 || true
+          exit 1
+        fi
+        if curl -fsS "http://127.0.0.1:$PORT/health" -o /dev/null 2>/dev/null; then
+          ready=1
+          break
+        fi
+        sleep 0.5
+      done
+      if [ -z "$ready" ]; then
+        echo "::error::http worker /health never returned 200; log follows:" >&2
         cat "$STAGE/worker-http.log" >&2 || true
         exit 1
       fi
-      if curl -fsS "http://127.0.0.1:$PORT/health" -o /dev/null 2>/dev/null; then
-        ready=1
-        break
-      fi
-      sleep 0.5
-    done
-    if [ -z "$ready" ]; then
-      echo "::error::http worker /health never returned 200; log follows:" >&2
-      cat "$STAGE/worker-http.log" >&2 || true
-      exit 1
+      echo "http worker healthy on port $PORT"
+      export VGI_POI_WORKER="http://127.0.0.1:$PORT"
     fi
-    echo "http worker healthy on port $PORT"
-    export VGI_POI_WORKER="http://127.0.0.1:$PORT"
     ;;
 
   unix)
@@ -197,10 +205,14 @@ rm -f "$STAGE/test/_warm.test"
 # whose error message contains "HTTP" or "Unable to connect" — so a broken http
 # setup would report "All tests were skipped" and go green while testing nothing.
 # Capture the output and fail the leg unless the runner reports tests PASSED.
-echo "Running suite (transport: $TRANSPORT, worker: $VGI_POI_WORKER) ..."
+# TEST_PATTERN narrows what RUNS (default: the whole suite). All files are always
+# staged above; this only selects which to execute — e.g. a single-file stdio
+# smoke through the docker image (TEST_PATTERN=test/sql/read_excel.test).
+TEST_PATTERN="${TEST_PATTERN:-test/sql/*}"
+echo "Running suite (transport: $TRANSPORT, worker: $VGI_POI_WORKER, pattern: $TEST_PATTERN) ..."
 OUT="$STAGE/suite.out"
 set +e
-"$HAYBARN_UNITTEST" "test/sql/*" 2>&1 | tee "$OUT"
+"$HAYBARN_UNITTEST" "$TEST_PATTERN" 2>&1 | tee "$OUT"
 status=${PIPESTATUS[0]}
 set -e
 if [ "$status" -ne 0 ]; then

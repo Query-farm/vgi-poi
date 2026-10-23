@@ -2,6 +2,7 @@ package farm.query.vgi.poi;
 
 import farm.query.vgi.function.Arguments;
 import farm.query.vgi.function.FunctionMetadata;
+import farm.query.vgi.protocol.FunctionExample;
 import farm.query.vgi.scalar.ScalarFn;
 import farm.query.vgi.scalar.Vector;
 import farm.query.vgi.types.Schemas;
@@ -13,6 +14,7 @@ import org.apache.arrow.vector.types.pojo.Schema;
 import org.apache.arrow.vector.util.Text;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 /**
  * {@code excel.detect_excel(bytes) -> VARCHAR} — sniff a BLOB and return
@@ -27,27 +29,23 @@ public final class DetectExcelFunction extends ScalarFn {
         return "Detect whether a BLOB is an Excel workbook: returns 'xlsx', 'xls', or NULL (Apache POI).";
     }
 
+    /** Shared by withExamples and the generated vgi.example_queries tag (VGI515). */
+    private static final List<FunctionExample> EXAMPLES = Meta.examples(
+            Meta.example(
+                    "SELECT excel.main.detect_excel(" + Examples.XLSX + ") AS fmt;",
+                    "Detect the format of a workbook's bytes — returns 'xlsx' for an "
+                            + "OOXML workbook."),
+            Meta.example(
+                    "SELECT excel.main.detect_excel('not a spreadsheet'::BLOB) IS NULL "
+                            + "AS not_excel;",
+                    "Non-Excel bytes return NULL, so a NULL check tells you the BLOB is "
+                            + "not a workbook."));
+
     @Override public FunctionMetadata metadata() {
         return FunctionMetadata.describe(description())
                 .withCategories("spreadsheet", "detection", "poi")
-                .withTag("vgi.example_queries",
-                        "[{\"sql\":\"SELECT excel.main.detect_excel((SELECT content FROM "
-                                + "read_blob('book.xlsx')));\",\"description\":\"Detect the format of "
-                                + "a file's bytes — returns 'xlsx', 'xls', or NULL.\"},"
-                                + "{\"sql\":\"SELECT excel.main.detect_excel('not a spreadsheet'::BLOB) "
-                                + "IS NULL AS not_excel;\",\"description\":\"Non-Excel bytes return "
-                                + "NULL, so a NULL check tells you the BLOB is not a workbook.\"}]")
-                .withExamples(Meta.examples(
-                        Meta.example(
-                                "SELECT excel.main.detect_excel('" + Examples.XLSX_BLOB
-                                        + "'::BLOB) AS fmt;",
-                                "Detect the format of a workbook's bytes — returns 'xlsx' for an "
-                                        + "OOXML workbook."),
-                        Meta.example(
-                                "SELECT excel.main.detect_excel('not a spreadsheet'::BLOB) IS NULL "
-                                        + "AS not_excel;",
-                                "Non-Excel bytes return NULL, so a NULL check tells you the BLOB is "
-                                        + "not a workbook.")))
+                .withTag("vgi.example_queries", Meta.exampleQueriesJson(EXAMPLES))
+                .withExamples(EXAMPLES)
                 .withTags(Meta.objectTags(
                         "Detect Excel File Format",
                         "## detect_excel\n\n"

@@ -91,4 +91,45 @@ final class Meta {
     static List<FunctionExample> examples(FunctionExample... e) {
         return List.of(e);
     }
+
+    /**
+     * The {@code vgi.example_queries} tag for a function, generated from the same
+     * {@link FunctionExample} list passed to {@code withExamples}. vgi-lint merges
+     * the two carriers by SQL, so deriving one from the other keeps every native
+     * example described (VGI515).
+     */
+    static String exampleQueriesJson(List<FunctionExample> examples) {
+        var sb = new StringBuilder("[");
+        for (FunctionExample e : examples) {
+            if (sb.length() > 1) {
+                sb.append(',');
+            }
+            sb.append("{\"sql\":").append(jsonString(e.sql()))
+                    .append(",\"description\":").append(jsonString(e.description()))
+                    .append('}');
+        }
+        return sb.append(']').toString();
+    }
+
+    private static String jsonString(String s) {
+        var sb = new StringBuilder("\"");
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            switch (c) {
+                case '"' -> sb.append("\\\"");
+                case '\\' -> sb.append("\\\\");
+                case '\n' -> sb.append("\\n");
+                case '\r' -> sb.append("\\r");
+                case '\t' -> sb.append("\\t");
+                default -> {
+                    if (c < 0x20) {
+                        sb.append(String.format("\\u%04x", (int) c));
+                    } else {
+                        sb.append(c);
+                    }
+                }
+            }
+        }
+        return sb.append('"').toString();
+    }
 }

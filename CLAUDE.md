@@ -14,7 +14,7 @@ shaded fat JAR. Catalog name `excel` (single `main` schema).
 ## Layout
 
 ```
-build.gradle.kts / settings.gradle.kts / gradle.properties   Gradle, shadow plugin (com.gradleup.shadow 9.4.2)
+build.gradle.kts / settings.gradle.kts / gradle.properties   Gradle, shadow plugin (com.gradleup.shadow 9.6.1)
 src/main/java/farm/query/vgi/poi/
   Main.java                  Worker.builder().catalogName("excel")...registerTable/registerTableInOut/registerScalar
   ReadExcelFunction.java     table fn: read_excel(path|bytes, sheet := NULL) — one row per non-blank cell
@@ -67,21 +67,24 @@ Makefile                     build / fixtures / test-unit / test-sql / test / cl
 6. **`Add-Opens: java.base/java.nio`** is baked into the manifest (Arrow needs it);
    the reader doc arg is `any`-typed so a VARCHAR path binds from SQL.
 7. **`haybarn-unittest` skips `require vgi`** — `.test` files use explicit
-   `LOAD vgi;`. BLOB args to a table function must be **literals** (e.g.
-   `'\x50\x4b...'::BLOB`); `read_blob('x')` is a table function, so use
+   `LOAD vgi;`. BLOB args to a table function must be **constants** (e.g.
+   `'\x50\x4b...'::BLOB` or `from_base64('UEsDB...')`; the metadata examples use
+   the base64 form in `Examples.XLSX` so a tag stays under vgi-lint's 4,000-char
+   VGI417 limit); `read_blob('x')` is a table function, so use
    `(SELECT content FROM read_blob('x'))` when feeding a *scalar* like detect_excel.
 
 ## SDK dependency & CI (self-contained via Maven Central)
 
-Depends on `farm.query:vgi:0.5.0` (pulls in `farm.query:vgirpc:0.10.2` transitively;
+Depends on `farm.query:vgi:0.43.0` (pulls in `farm.query:vgirpc:0.33.1` transitively;
 vgirpc declared explicitly since the code imports `farm.query.vgirpc.*`). **On
 Maven Central**, so the build is fully self-contained: no sibling checkout, no
 `mavenLocal`, no composite build. `.github/workflows/test.yml` is a single
 `build-and-test` job: JUnit + shadowJar + HTTP boot smoke test + `make test-sql`.
 
 The in-process test drivers (`TestSupport`, `WriteXlsxTest`) construct vgi records
-directly. vgi 0.4.0's `TableInitParams` ends with `atUnit, atValue, storage`
-(append trailing nulls) and `TableInOutInitParams` ends with `storage`; get exact
+directly. vgi 0.43.0's `TableInitParams` has 25 components (`bindOutputSchema`
+after `outputSchema`; trailing `atUnit, atValue, storage, copyFrom,
+splitPayloads`) and `TableInOutInitParams` ends with `storage`; get exact
 signatures via `javap -cp <vgi jar> farm.query.vgi.table.TableInitParams`.
 
 ## Testing
@@ -100,4 +103,4 @@ only by E2E. Fixtures are reproducible via `make fixtures` (Gradle
 
 ## Packaging
 
-~51 MB shaded JAR (POI 5.3.0 HSSF + XSSF + xmlbeans, all Apache-2.0).
+~51 MB shaded JAR (POI 6.0.0 HSSF + XSSF + xmlbeans, all Apache-2.0).

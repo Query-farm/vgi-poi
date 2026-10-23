@@ -5,6 +5,7 @@ import farm.query.vgi.function.Arguments;
 import farm.query.vgi.function.FunctionMetadata;
 import farm.query.vgi.internal.SchemaUtil;
 import farm.query.vgi.protocol.BindResponse;
+import farm.query.vgi.protocol.FunctionExample;
 import farm.query.vgi.table.TableBindParams;
 import farm.query.vgi.table.TableFunction;
 import farm.query.vgi.table.TableInitParams;
@@ -32,28 +33,21 @@ public final class ReadExcelFunction implements TableFunction {
 
     @Override public String name() { return "read_excel"; }
 
+    /** Shared by withExamples and the generated vgi.example_queries tag (VGI515). */
+    private static final List<FunctionExample> EXAMPLES = Meta.examples(
+            Meta.example(
+                    "SELECT sheet, cell_ref, value, type FROM excel.main.read_excel("
+                            + Examples.XLSX + ") ORDER BY cell_ref;",
+                    "Read every non-blank cell of a workbook (passed as inline bytes) "
+                            + "as one row per cell."));
+
     @Override public FunctionMetadata metadata() {
         return FunctionMetadata.describe(
                         "Read every non-blank cell of an Excel workbook (.xls or .xlsx) as rows with "
                                 + "type, A1 reference, evaluated value, and formula text (Apache POI).")
                 .withCategories("spreadsheet", "excel", "poi")
-                .withTag("vgi.example_queries",
-                        "[{\"sql\":\"SELECT sheet, cell_ref, value, type FROM excel.main.read_excel('"
-                                + Examples.XLSX_BLOB_JSON + "'::BLOB) ORDER BY cell_ref;\",\"description\":"
-                                + "\"Read every non-blank cell of a workbook (inline bytes) as rows.\"},"
-                                + "{\"sql\":\"SELECT count(*) AS cells FROM excel.main.read_excel('"
-                                + Examples.XLSX_BLOB_JSON + "'::BLOB);\",\"description\":\"Count the "
-                                + "non-blank cells in a workbook.\"}]")
-                .withExamples(Meta.examples(
-                        Meta.example(
-                                "SELECT sheet, cell_ref, value, type FROM excel.main.read_excel('"
-                                        + Examples.XLSX_BLOB + "'::BLOB) ORDER BY cell_ref;",
-                                "Read every non-blank cell of a workbook (passed as inline bytes) "
-                                        + "as one row per cell."),
-                        Meta.example(
-                                "SELECT count(*) AS cells FROM excel.main.read_excel('"
-                                        + Examples.XLSX_BLOB + "'::BLOB);",
-                                "Count the non-blank cells in a workbook.")))
+                .withTag("vgi.example_queries", Meta.exampleQueriesJson(EXAMPLES))
+                .withExamples(EXAMPLES)
                 .withTag("vgi.result_columns_schema",
                         "[{\"name\":\"sheet\",\"type\":\"VARCHAR\",\"description\":\"Worksheet name the "
                                 + "cell belongs to.\"},"

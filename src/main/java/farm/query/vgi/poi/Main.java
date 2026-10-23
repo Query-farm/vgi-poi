@@ -211,13 +211,14 @@ public final class Main {
      * <p>Each task gives the analyst only a natural-language {@code prompt} that
      * names the committed fixture workbook by its repo-relative path
      * ({@code test/sql/data/sample.xlsx}, which the worker opens with CWD = repo
-     * root — the same path the SQL E2E suite uses). Grading compares the analyst's
-     * result to a deterministic {@code reference_sql} over that fixture,
-     * value-only (column names and row order ignored), so the suite is stable.
+     * root — the same path the SQL E2E suite uses). Only the public {@code name}
+     * + {@code prompt} are published (VGI416); the private grader fields
+     * ({@code reference_sql}, {@code success_criteria}, ...) live in the
+     * {@code vgi-agent-tests.yaml} sidecar at the repo root, keyed by task name.
      *
      * <p>The fixture's Numbers sheet holds A1=2, B1=3, C1=A1+B1 (evaluates to 5),
      * A2="hello", B2=TRUE, C2=a date (6 non-blank cells); the Other sheet holds
-     * A1="second sheet". These known values drive the references below.
+     * A1="second sheet". These known values drive the graders' references.
      */
     private static String agentTestTasksJson() {
         String path = "test/sql/data/sample.xlsx";
@@ -227,63 +228,39 @@ public final class Main {
         var tasks = new java.util.ArrayList<java.util.Map<String, Object>>();
         tasks.add(agentTask(
                 "list_sheet_names",
-                has + "List the names of every worksheet in that workbook. Return one name per row.",
-                "SELECT name FROM excel.main.excel_sheets('" + path + "') ORDER BY idx",
-                "The workbook has two worksheets, named 'Numbers' and 'Other'."));
+                has + "List the names of every worksheet in that workbook. Return one name per row."));
         tasks.add(agentTask(
                 "evaluate_formula",
                 has + "Cell C1 of the 'Numbers' worksheet contains a formula. Return the single "
-                        + "value that formula evaluates to.",
-                "SELECT value FROM excel.main.read_excel('" + path + "', sheet := 'Numbers') "
-                        + "WHERE cell_ref = 'C1'",
-                "C1 is =A1+B1 over A1=2 and B1=3, so it evaluates to 5."));
+                        + "value that formula evaluates to."));
         tasks.add(agentTask(
                 "formula_text",
                 has + "Return the raw formula text (without a leading '=') stored in cell C1 of "
-                        + "the 'Numbers' worksheet.",
-                "SELECT formula FROM excel.main.read_excel('" + path + "', sheet := 'Numbers') "
-                        + "WHERE cell_ref = 'C1'",
-                "The formula text of C1 is 'A1+B1'."));
+                        + "the 'Numbers' worksheet."));
         tasks.add(agentTask(
                 "count_cells_on_sheet",
                 has + "Count how many non-blank cells the 'Numbers' worksheet contains. Return the "
-                        + "single count.",
-                "SELECT count(*) FROM excel.main.read_excel('" + path + "', sheet := 'Numbers')",
-                "The Numbers sheet has 6 non-blank cells (A1, B1, C1, A2, B2, C2)."));
+                        + "single count."));
         tasks.add(agentTask(
                 "writable_formats",
                 "Using only this worker's catalog (do not open the workbook), determine which Excel "
-                        + "workbook formats this worker can WRITE. Return one format tag per row.",
-                "SELECT format FROM excel.main.formats WHERE writable ORDER BY format",
-                "Only the modern .xlsx (OOXML) format is writable; .xls is read-only."));
+                        + "workbook formats this worker can WRITE. Return one format tag per row."));
         tasks.add(agentTask(
                 "detect_format",
                 has + "Determine the file format of that workbook's bytes — is it an .xlsx, an "
-                        + ".xls, or neither? Return the single format string.",
-                "SELECT excel.main.detect_excel((SELECT content FROM read_blob('" + path + "')))",
-                "The bytes are a modern OOXML workbook, so detection returns 'xlsx'."));
+                        + ".xls, or neither? Return the single format string."));
         tasks.add(agentTask(
                 "export_and_verify",
                 has + "Separately, export the one-row relation SELECT 1 AS id, 'Ada' AS name to an "
                         + ".xlsx workbook using this worker, then confirm the produced bytes are a "
-                        + "valid Excel workbook. Return the single detected format string.",
-                "SELECT excel.main.detect_excel(xlsx) FROM excel.main.write_xlsx("
-                        + "(SELECT 1 AS id, 'Ada' AS name))",
-                "write_xlsx produces a valid OOXML workbook, so detect_excel returns 'xlsx'."));
+                        + "valid Excel workbook. Return the single detected format string."));
         return tasksToJson(tasks);
     }
 
-    private static java.util.Map<String, Object> agentTask(
-            String name, String prompt, String referenceSql, String successCriteria) {
+    private static java.util.Map<String, Object> agentTask(String name, String prompt) {
         var t = new java.util.LinkedHashMap<String, Object>();
         t.put("name", name);
         t.put("prompt", prompt);
-        t.put("reference_sql", referenceSql);
-        t.put("success_criteria", successCriteria);
-        // Every reference returns a single column, so grade on VALUES only:
-        // ignore the analyst's column alias and row order.
-        t.put("ignore_column_names", true);
-        t.put("unordered", true);
         return t;
     }
 
@@ -344,21 +321,19 @@ public final class Main {
      * only literal arguments), so each example runs as written.
      */
     private static String executableExamples() {
-        // The BLOB literal contains backslash-x hex escapes; inside a JSON string
-        // each backslash must itself be escaped (\\x...) to be valid JSON.
-        String blob = Examples.XLSX_BLOB.replace("\\", "\\\\");
+        // One inline-workbook example only: each costs ~2.1k characters and the whole
+        // tag must stay under vgi-lint's 4,000-character agent-context limit (VGI417).
+        // The base64 workbook has no backslashes or quotes, so it is JSON-safe as is.
         return "["
                 + "{\"description\":\"Read a workbook's non-blank cells (passed as inline bytes).\","
-                + "\"sql\":\"SELECT sheet, cell_ref, value, type FROM excel.main.read_excel('"
-                + blob + "'::BLOB) ORDER BY cell_ref;\"},"
-                + "{\"description\":\"List the worksheets of a workbook.\","
-                + "\"sql\":\"SELECT idx, name, rows, cols FROM excel.main.excel_sheets('"
-                + blob + "'::BLOB) ORDER BY idx;\"},"
-                + "{\"description\":\"Detect that the bytes are an .xlsx workbook.\","
-                + "\"sql\":\"SELECT excel.main.detect_excel('" + blob + "'::BLOB) AS fmt;\"},"
+                + "\"sql\":\"SELECT sheet, cell_ref, value, type FROM excel.main.read_excel("
+                + Examples.XLSX + ") ORDER BY cell_ref;\"},"
                 + "{\"description\":\"Export a query result to an .xlsx workbook BLOB and confirm "
                 + "bytes were produced.\",\"sql\":\"SELECT octet_length(xlsx) > 0 AS produced FROM "
-                + "excel.main.write_xlsx((SELECT 1 AS id, 'Ada' AS name), sheet_name := 'People');\"}"
+                + "excel.main.write_xlsx((SELECT 1 AS id, 'Ada' AS name), sheet_name := 'People');\"},"
+                + "{\"description\":\"Round-trip: detect that the written bytes are an .xlsx "
+                + "workbook.\",\"sql\":\"SELECT excel.main.detect_excel(xlsx) AS fmt FROM "
+                + "excel.main.write_xlsx((SELECT 1 AS id, 'Ada' AS name));\"}"
                 + "]";
     }
 

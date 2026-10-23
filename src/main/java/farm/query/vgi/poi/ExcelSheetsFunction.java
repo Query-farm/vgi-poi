@@ -5,6 +5,7 @@ import farm.query.vgi.function.Arguments;
 import farm.query.vgi.function.FunctionMetadata;
 import farm.query.vgi.internal.SchemaUtil;
 import farm.query.vgi.protocol.BindResponse;
+import farm.query.vgi.protocol.FunctionExample;
 import farm.query.vgi.table.TableBindParams;
 import farm.query.vgi.table.TableFunction;
 import farm.query.vgi.table.TableInitParams;
@@ -26,21 +27,21 @@ public final class ExcelSheetsFunction implements TableFunction {
 
     @Override public String name() { return "excel_sheets"; }
 
+    /** Shared by withExamples and the generated vgi.example_queries tag (VGI515). */
+    private static final List<FunctionExample> EXAMPLES = Meta.examples(
+            Meta.example(
+                    "SELECT idx, name, rows, cols FROM excel.main.excel_sheets("
+                            + Examples.XLSX + ") ORDER BY idx;",
+                    "List every worksheet of a workbook (passed as inline bytes) with "
+                            + "its dimensions."));
+
     @Override public FunctionMetadata metadata() {
         return FunctionMetadata.describe(
                         "List the worksheets of an Excel workbook (.xls or .xlsx) with index, name, "
                                 + "row count, and column count (Apache POI).")
                 .withCategories("spreadsheet", "excel", "poi")
-                .withTag("vgi.example_queries",
-                        "[{\"sql\":\"SELECT idx, name, rows, cols FROM excel.main.excel_sheets('"
-                                + Examples.XLSX_BLOB_JSON + "'::BLOB) ORDER BY idx;\",\"description\":\"List "
-                                + "every worksheet of a workbook (inline bytes) with its dimensions.\"}]")
-                .withExamples(Meta.examples(
-                        Meta.example(
-                                "SELECT idx, name, rows, cols FROM excel.main.excel_sheets('"
-                                        + Examples.XLSX_BLOB + "'::BLOB) ORDER BY idx;",
-                                "List every worksheet of a workbook (passed as inline bytes) with "
-                                        + "its dimensions.")))
+                .withTag("vgi.example_queries", Meta.exampleQueriesJson(EXAMPLES))
+                .withExamples(EXAMPLES)
                 .withTag("vgi.result_columns_schema",
                         "[{\"name\":\"idx\",\"type\":\"INTEGER\",\"description\":\"0-based sheet ordinal "
                                 + "within the workbook.\"},"

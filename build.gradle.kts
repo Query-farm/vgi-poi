@@ -4,7 +4,7 @@ plugins {
     java
     application
     // Fat/shaded JAR: `./gradlew shadowJar` -> build/libs/vgi-poi-<ver>-all.jar
-    id("com.gradleup.shadow") version "9.5.1"
+    id("com.gradleup.shadow") version "9.6.1"
 }
 
 group = "farm.query"
@@ -34,21 +34,21 @@ tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
 }
 
-val poiVersion = "5.5.1"
+val poiVersion = "6.0.0"
 
 dependencies {
     // VGI Java SDK from Maven Central. `vgi` is the worker/catalog API and pulls
     // in farm.query:vgirpc transitively; vgirpc is declared explicitly because
     // the code imports farm.query.vgirpc.* directly.
-    implementation("farm.query:vgi:0.19.0")
-    implementation("farm.query:vgirpc:0.16.0")
+    implementation("farm.query:vgi:0.43.0")
+    implementation("farm.query:vgirpc:0.33.1")
 
     // Apache POI — Apache-2.0. `poi` reads/writes the legacy .xls (HSSF) format;
     // `poi-ooxml` adds the .xlsx (XSSF) format and pulls in xmlbeans + commons.
     implementation("org.apache.poi:poi:$poiVersion")
     implementation("org.apache.poi:poi-ooxml:$poiVersion")
 
-    implementation("org.slf4j:slf4j-simple:2.0.18")
+    implementation("org.slf4j:slf4j-simple:2.0.20")
     // POI's logging fronts on Log4j 2 API (org.apache.logging.log4j). Without a
     // provider, Log4j's StatusLogger prints "could not find a logging provider"
     // to System.out — which corrupts the stdio Arrow-IPC transport and hangs the
@@ -56,7 +56,7 @@ dependencies {
     // writes to stdout. (slf4j-simple defaults all output to System.err.)
     implementation("org.apache.logging.log4j:log4j-to-slf4j:2.26.1")
 
-    testImplementation("org.junit.jupiter:junit-jupiter:6.1.1")
+    testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

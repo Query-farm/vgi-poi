@@ -5,6 +5,7 @@ import farm.query.vgi.function.Arguments;
 import farm.query.vgi.function.FunctionMetadata;
 import farm.query.vgi.internal.SchemaUtil;
 import farm.query.vgi.protocol.BindResponse;
+import farm.query.vgi.protocol.FunctionExample;
 import farm.query.vgi.tableinout.TableInOutBindParams;
 import farm.query.vgi.tableinout.TableInOutExchangeState;
 import farm.query.vgi.tableinout.TableInOutFunction;
@@ -68,27 +69,26 @@ public final class WriteXlsxFunction implements TableInOutFunction {
 
     @Override public String name() { return "write_xlsx"; }
 
+    /** Shared by withExamples and the generated vgi.example_queries tag (VGI515). */
+    private static final List<FunctionExample> EXAMPLES = Meta.examples(
+            Meta.example(
+                    "SELECT octet_length(xlsx) > 0 AS produced FROM excel.main.write_xlsx("
+                            + "(SELECT 1 AS id, 'Ada' AS name), sheet_name := 'People');",
+                    "Export a one-row query result to an .xlsx workbook BLOB on a named "
+                            + "sheet and confirm bytes were produced."),
+            Meta.example(
+                    "SELECT excel.main.detect_excel(xlsx) AS fmt FROM excel.main.write_xlsx("
+                            + "(SELECT 1 AS id, 'Ada' AS name));",
+                    "Round-trip check: the BLOB written by write_xlsx is detected as an "
+                            + "'xlsx' workbook."));
+
     @Override public FunctionMetadata metadata() {
         return FunctionMetadata.describe(
                         "Serialize an input relation into an .xlsx workbook BLOB with typed cells and an "
                                 + "optional bold header row (Apache POI).")
                 .withCategories("spreadsheet", "excel", "poi")
-                .withTag("vgi.example_queries",
-                        "[{\"sql\":\"SELECT octet_length(xlsx) AS bytes FROM excel.main.write_xlsx("
-                                + "(SELECT 1 AS id, 'Ada' AS name), sheet_name := "
-                                + "'People');\",\"description\":\"Export a query result to an .xlsx "
-                                + "workbook BLOB on a named sheet.\"}]")
-                .withExamples(Meta.examples(
-                        Meta.example(
-                                "SELECT octet_length(xlsx) > 0 AS produced FROM excel.main.write_xlsx("
-                                        + "(SELECT 1 AS id, 'Ada' AS name), sheet_name := 'People');",
-                                "Export a one-row query result to an .xlsx workbook BLOB on a named "
-                                        + "sheet and confirm bytes were produced."),
-                        Meta.example(
-                                "SELECT excel.main.detect_excel(xlsx) AS fmt FROM excel.main.write_xlsx("
-                                        + "(SELECT 1 AS id, 'Ada' AS name));",
-                                "Round-trip check: the BLOB written by write_xlsx is detected as an "
-                                        + "'xlsx' workbook.")))
+                .withTag("vgi.example_queries", Meta.exampleQueriesJson(EXAMPLES))
+                .withExamples(EXAMPLES)
                 .withTag("vgi.result_columns_schema",
                         "[{\"name\":\"xlsx\",\"type\":\"BLOB\",\"description\":\"The generated .xlsx "
                                 + "workbook bytes (one row per input batch; the last row is the complete "

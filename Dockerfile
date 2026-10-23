@@ -15,7 +15,7 @@
 # ---- build stage -----------------------------------------------------------
 # Build the shaded fat JAR (JUnit skipped; the gating CI already ran the full
 # suite). The Gradle user home is a BuildKit cache mount, so dependency
-# downloads (POI 5.5.1 + vgi/vgirpc from Maven Central) are cached across builds
+# downloads (POI 6.0.0 + vgi/vgirpc from Maven Central) are cached across builds
 # but do not persist into the image. The JAR is copied to a fixed name before
 # the layer ends because cache mounts are not part of the final image.
 FROM eclipse-temurin:21-jdk AS build

@@ -1,0 +1,53 @@
+# Private grader sidecar for `vgi-lint simulate` (and `lint`'s VGI520 coverage).
+# The worker publishes only task names + prompts in `vgi.agent_test_tasks`
+# (Main.agentTestTasksJson); these grader fields are keyed by that name and never
+# sent to the analyst agent (VGI416).
+tasks:
+  - name: list_sheet_names
+    reference_sql: |-
+      SELECT name FROM excel.main.excel_sheets('test/sql/data/sample.xlsx') ORDER BY idx
+    success_criteria: "The workbook has two worksheets, named 'Numbers' and 'Other'."
+    ignore_column_names: true
+    unordered: true
+
+  - name: evaluate_formula
+    reference_sql: |-
+      SELECT value FROM excel.main.read_excel('test/sql/data/sample.xlsx', sheet := 'Numbers') WHERE cell_ref = 'C1'
+    success_criteria: "C1 is =A1+B1 over A1=2 and B1=3, so it evaluates to 5."
+    ignore_column_names: true
+    unordered: true
+
+  - name: formula_text
+    reference_sql: |-
+      SELECT formula FROM excel.main.read_excel('test/sql/data/sample.xlsx', sheet := 'Numbers') WHERE cell_ref = 'C1'
+    success_criteria: "The formula text of C1 is 'A1+B1'."
+    ignore_column_names: true
+    unordered: true
+
+  - name: count_cells_on_sheet
+    reference_sql: |-
+      SELECT count(*) FROM excel.main.read_excel('test/sql/data/sample.xlsx', sheet := 'Numbers')
+    success_criteria: "The Numbers sheet has 6 non-blank cells (A1, B1, C1, A2, B2, C2)."
+    ignore_column_names: true
+    unordered: true
+
+  - name: writable_formats
+    reference_sql: |-
+      SELECT format FROM excel.main.formats WHERE writable ORDER BY format
+    success_criteria: "Only the modern .xlsx (OOXML) format is writable; .xls is read-only."
+    ignore_column_names: true
+    unordered: true
+
+  - name: detect_format
+    reference_sql: |-
+      SELECT excel.main.detect_excel((SELECT content FROM read_blob('test/sql/data/sample.xlsx')))
+    success_criteria: "The bytes are a modern OOXML workbook, so detection returns 'xlsx'."
+    ignore_column_names: true
+    unordered: true
+
+  - name: export_and_verify
+    reference_sql: |-
+      SELECT excel.main.detect_excel(xlsx) FROM excel.main.write_xlsx((SELECT 1 AS id, 'Ada' AS name))
+    success_criteria: "write_xlsx produces a valid OOXML workbook, so detect_excel returns 'xlsx'."
+    ignore_column_names: true
+    unordered: true

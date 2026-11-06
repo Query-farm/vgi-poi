@@ -18,7 +18,7 @@ extension from the Haybarn community channel:
    spawn as a subprocess (the VGI LOCATION), and the same JAR serves the HTTP and
    AF_UNIX transports via `--http` / `--unix`.
 2. **Download the runner** — the `haybarn_unittest-linux-amd64.zip` asset from
-   the latest Haybarn release (resolved once in the `resolve-haybarn` job so the
+   the newest Haybarn **2.0** release (`gh release list`, filtered to `haybarn-v2.0*`; a bare `gh release view` still returns the 1.5 line) (resolved once in the `resolve-haybarn` job so the
    version is never hardcoded).
 3. **Preprocess** — the standalone runner links none of the extensions the
    tests gate on, so [`preprocess-require.awk`](preprocess-require.awk) rewrites
@@ -29,7 +29,7 @@ extension from the Haybarn community channel:
 4. **Run** — [`run-integration.sh`](run-integration.sh) stages the preprocessed
    tree plus the committed `test/sql/data` fixtures, brings up the worker on the
    chosen transport, points `VGI_POI_WORKER` at it, **warms the extension cache
-   once** (`INSTALL vgi FROM community;` + `INSTALL httpfs FROM core;`) so each
+   once** (`FORCE INSTALL vgi FROM community;` + `FORCE INSTALL httpfs FROM core;`, both runs with `--keep-home`) so each
    test file's explicit `LOAD vgi;` / injected `LOAD httpfs;` succeeds, then runs
    the suite in a single `haybarn-unittest` invocation. Any failed assertion
    exits non-zero and fails the job.

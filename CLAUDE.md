@@ -75,19 +75,19 @@ Makefile                     build / fixtures / test-unit / test-sql / test / cl
 
 ## SDK dependency & CI (self-contained via Maven Central)
 
-Depends on `farm.query:vgi:0.46.0` (pulls in `farm.query:vgirpc` transitively; pinned to 0.33.3;
+Depends on `farm.query:vgi:0.47.0` (pulls in `farm.query:vgirpc` transitively; pinned to 0.33.3;
 vgirpc declared explicitly since the code imports `farm.query.vgirpc.*`). **On
 Maven Central**, so the build is fully self-contained: no sibling checkout, no
 `mavenLocal`, no composite build. `.github/workflows/test.yml` is a single
 `build-and-test` job: JUnit + shadowJar + HTTP boot smoke test + `make test-sql`.
 
 The in-process test drivers (`TestSupport`, `WriteXlsxTest`) construct vgi records
-directly. vgi 0.46.0's `TableInitParams` (unchanged since 0.43.0) has 25 components (`bindOutputSchema`
+directly. vgi 0.47.0's `TableInitParams` (unchanged since 0.43.0) has 25 components (`bindOutputSchema`
 after `outputSchema`; trailing `atUnit, atValue, storage, copyFrom,
 splitPayloads`) and `TableInOutInitParams` ends with `storage`; get exact
 signatures via `javap -cp <vgi jar> farm.query.vgi.table.TableInitParams`.
 
-**Protocol:** vgi 0.46.0 speaks VGI protocol `vgi.v3` / 3.1.0, which only the
+**Protocol:** vgi 0.47.0 speaks VGI protocol `vgi.v3` / 3.2.0, which only the
 haybarn **2.0** community `vgi` extension attaches (haybarn 1.5 rejects it).
 `haybarn-unittest` 2.0 isolates `$HOME`, so `ci/run-integration.sh` and
 `make test-sql` pass `--keep-home` (otherwise the installed `vgi` extension is

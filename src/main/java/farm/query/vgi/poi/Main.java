@@ -129,7 +129,11 @@ public final class Main {
 
     private static java.util.Map<String, String> catalogTags() {
         var t = new java.util.LinkedHashMap<String, String>();
-        t.put("vgi.title", "Excel Spreadsheet Read & Write");
+        t.put("vgi.title", "Excel Workbooks");
+        t.put(
+                "vgi.subtitle",
+                "Read cells and sheets from .xls/.xlsx workbooks and export query results to .xlsx, "
+                        + "powered by Apache POI.");
         t.put(
                 "vgi.keywords",
                 "[\"excel\",\"xlsx\",\"xls\",\"spreadsheet\",\"workbook\",\"apache poi\","
@@ -339,7 +343,7 @@ public final class Main {
 
     private static java.util.Map<String, String> schemaTags() {
         var t = new java.util.LinkedHashMap<String, String>();
-        t.put("vgi.title", "Excel — main");
+        t.put("vgi.title", "Excel Read & Write");
         t.put(
                 "vgi.keywords",
                 "[\"excel\",\"xlsx\",\"xls\",\"read_excel\",\"excel_sheets\",\"write_xlsx\","

@@ -21,7 +21,7 @@ equal in any other language: it reads the legacy OLE2 `.xls` (HSSF) and the OOXM
 
 ```sql
 INSTALL vgi FROM community; LOAD vgi;
-ATTACH 'excel' (TYPE vgi, LOCATION 'java -jar vgi-poi-v0.3.0.jar');
+ATTACH 'excel' (TYPE vgi, LOCATION 'java -jar vgi-poi-v0.4.0.jar');
 
 -- every non-blank cell of a workbook, with type + evaluated formula value
 SELECT sheet, cell_ref, value, type, formula
@@ -40,7 +40,7 @@ FROM excel.write_xlsx((SELECT id, name, score FROM results));
 Every [GitHub release](https://github.com/Query-farm/vgi-poi/releases) ships a self-contained worker jar. It needs Java 21 or newer. Download it:
 
 ```sh
-curl -LO https://github.com/Query-farm/vgi-poi/releases/download/v0.3.0/vgi-poi-v0.3.0.jar
+curl -LO https://github.com/Query-farm/vgi-poi/releases/download/v0.4.0/vgi-poi-v0.4.0.jar
 ```
 
 then attach it from DuckDB (run from the directory holding the jar, or use its absolute path):
@@ -49,7 +49,7 @@ then attach it from DuckDB (run from the directory holding the jar, or use its a
 INSTALL vgi FROM community;
 LOAD vgi;
 
-ATTACH 'excel' AS excel (TYPE vgi, LOCATION 'java -jar vgi-poi-v0.3.0.jar');
+ATTACH 'excel' AS excel (TYPE vgi, LOCATION 'java -jar vgi-poi-v0.4.0.jar');
 
 -- Read a workbook's non-blank cells (passed as inline bytes).
 SELECT sheet, cell_ref, value, type FROM excel.main.read_excel(from_base64('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')) ORDER BY cell_ref;
@@ -63,7 +63,7 @@ SELECT octet_length(xlsx) > 0 AS produced FROM excel.main.write_xlsx((SELECT 1 A
 - **Docker** (the image bundles the worker and a Java runtime):
 
   ```sql
-  ATTACH 'excel' AS excel (TYPE vgi, LOCATION 'docker://ghcr.io/query-farm/vgi-poi:0.3.0');
+  ATTACH 'excel' AS excel (TYPE vgi, LOCATION 'docker://ghcr.io/query-farm/vgi-poi:0.4.0');
   ```
 
 ### Build from source
@@ -207,7 +207,7 @@ make test-sql    # fat JAR + regenerate fixtures + haybarn-unittest over test/sq
 
 The SQL E2E suite (`test/sql/*.test`) runs the real functions inside DuckDB via
 [`haybarn-unittest`](https://pypi.org/project/haybarn-unittest/) with the fat JAR
-as the VGI `LOCATION`. Install the runner (haybarn **2.0**; this worker speaks VGI protocol `vgi.v3` / 3.2) once with `uv tool install --prerelease allow 'haybarn-unittest>=2.0.0rc11,<2.1'`
+as the VGI `LOCATION`. Install the runner (haybarn **2.0**; this worker speaks VGI protocol `vgi.v3` / 3.3) once with `uv tool install --prerelease allow 'haybarn-unittest>=2.0.0rc11,<2.1'`
 and put `~/.local/bin` on `PATH`. Fixtures under `test/sql/data/` (a two-sheet
 `.xlsx` and `.xls` with a formula, plus a garbage blob) are reproducible from the
 JUnit POI builders via `make fixtures` (Gradle `generateSqlFixtures`).

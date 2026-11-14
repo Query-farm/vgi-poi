@@ -1,0 +1,240 @@
+{
+  "schema_version": 1,
+  "catalogs": {
+    "released": {
+      "path": "coverage/catalog-release.json",
+      "sha256": "f3679e4d2fd3cad387503cdc872d03f939665f85253401470c914fd7c7931180",
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root",
+        "reviewed_at": "2026-11-14T20:29:39.278662+00:00",
+        "catalog_sha256": "f3679e4d2fd3cad387503cdc872d03f939665f85253401470c914fd7c7931180",
+        "notes": "Complete actual v0.4.0 exports:read_excel,excel_sheets,write_xlsx,detect_excel and formats view. Writer included explicitly; no capability exclusions."
+      }
+    },
+    "current": {
+      "path": "coverage/catalog-current.json",
+      "sha256": "3ddc9d312bdcf18f83d3cc04784b0561fce5517df5daa33c375b0d2ac6ed03a8",
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root",
+        "reviewed_at": "2026-11-14T20:29:39.278662+00:00",
+        "catalog_sha256": "3ddc9d312bdcf18f83d3cc04784b0561fce5517df5daa33c375b0d2ac6ed03a8",
+        "notes": "Complete current registrations/view at75f5840841fb868acb154ad622e64d63c5e4a197. Full source diff changes metadata/examples only. Decoding, writer, bindings, dependencies and format rows unchanged. Current binary not built or run."
+      }
+    }
+  },
+  "notebooks": [
+    {
+      "path": "01_separate_spreadsheet_details_from_totals.ipynb",
+      "sha256": "575e2fa69b4e754b5c47e0f88c065a553b4324cfc761592c12f8138b2a184be1",
+      "execution": {
+        "path": "coverage/run-01.json",
+        "sha256": "cfe9ead900f91fb94fd8fa6e1b75a6c395449f31c0584a4020076ae2412388eb"
+      }
+    }
+  ],
+  "examples": [
+    {
+      "object": {
+        "schema": "main",
+        "name": "excel_sheets"
+      },
+      "notebook": "01_separate_spreadsheet_details_from_totals.ipynb",
+      "sql": [
+        {
+          "cell": "828e6f13",
+          "reference": "excel.main.excel_sheets"
+        }
+      ],
+      "narrative_cells": [
+        "502749b2"
+      ],
+      "result_cells": [
+        "828e6f13",
+        "8a4388c7"
+      ],
+      "interpretation_cells": [
+        "502749b2",
+        "6f312cd3"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root",
+        "reviewed_at": "2026-11-14T20:29:39.278662+00:00",
+        "notebook_sha256": "575e2fa69b4e754b5c47e0f88c065a553b4324cfc761592c12f8138b2a184be1",
+        "catalog_sha256": [
+          "f3679e4d2fd3cad387503cdc872d03f939665f85253401470c914fd7c7931180",
+          "3ddc9d312bdcf18f83d3cc04784b0561fce5517df5daa33c375b0d2ac6ed03a8"
+        ],
+        "purpose": "Reconcile worksheet extents with actual nonblank cell and formula populations.",
+        "finding": "Orders has an authored blank row30, so sheet row extent is not record count. Joining directory to emitted cells preserves both Orders and Notes and exposes the schema before reshaping."
+      }
+    },
+    {
+      "object": {
+        "schema": "main",
+        "name": "read_excel"
+      },
+      "notebook": "01_separate_spreadsheet_details_from_totals.ipynb",
+      "sql": [
+        {
+          "cell": "828e6f13",
+          "reference": "excel.main.read_excel"
+        },
+        {
+          "cell": "69a8f396",
+          "reference": "excel.main.read_excel"
+        },
+        {
+          "cell": "1f6c4e97",
+          "reference": "excel.main.read_excel"
+        }
+      ],
+      "narrative_cells": [
+        "502749b2",
+        "74b9ce66",
+        "b31b97e3"
+      ],
+      "result_cells": [
+        "8a4388c7",
+        "dd25fa5d",
+        "0a53ef4f",
+        "69a8f396"
+      ],
+      "interpretation_cells": [
+        "0a53ef4f",
+        "d8f388af",
+        "6f312cd3"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root",
+        "reviewed_at": "2026-11-14T20:29:39.278662+00:00",
+        "notebook_sha256": "575e2fa69b4e754b5c47e0f88c065a553b4324cfc761592c12f8138b2a184be1",
+        "catalog_sha256": [
+          "f3679e4d2fd3cad387503cdc872d03f939665f85253401470c914fd7c7931180",
+          "3ddc9d312bdcf18f83d3cc04784b0561fce5517df5daa33c375b0d2ac6ed03a8"
+        ],
+        "purpose": "Preserve cell types and evaluated formulas, then re-read an export to verify values and types.",
+        "finding": "Stale caches999999 are recomputed. Pending quantity gives a formula error, zero is retained, and line/summary rows stay distinct. Naive numeric amount total279.50USD contrasts with99.00USD known valid lines. Default export retains five text-ID/numeric/boolean rows; omitted-return experiment has four rows and111.50USD."
+      }
+    },
+    {
+      "object": {
+        "schema": "main",
+        "name": "write_xlsx"
+      },
+      "notebook": "01_separate_spreadsheet_details_from_totals.ipynb",
+      "sql": [
+        {
+          "cell": "f009d7bf",
+          "reference": "excel.main.write_xlsx"
+        }
+      ],
+      "narrative_cells": [
+        "b31fc451",
+        "b31b97e3"
+      ],
+      "result_cells": [
+        "f009d7bf",
+        "69a8f396",
+        "6f312cd3"
+      ],
+      "interpretation_cells": [
+        "b31fc451",
+        "6f312cd3",
+        "fe9bcde0"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root",
+        "reviewed_at": "2026-11-14T20:29:39.278662+00:00",
+        "notebook_sha256": "575e2fa69b4e754b5c47e0f88c065a553b4324cfc761592c12f8138b2a184be1",
+        "catalog_sha256": [
+          "f3679e4d2fd3cad387503cdc872d03f939665f85253401470c914fd7c7931180",
+          "3ddc9d312bdcf18f83d3cc04784b0561fce5517df5daa33c375b0d2ac6ed03a8"
+        ],
+        "purpose": "Export the selected typed relation and reconcile it through the real reader.",
+        "finding": "The small input produces exactly one XLSX BLOB, saved atomically to an ignored local artifact and read back. SQL EXCEPT in both directions verifies values and row counts; cell types retain leading-zero text IDs and boolean flags. The writer emits a workbook-so-far per batch; the save step refuses multiple outputs, without claiming arbitrary multi-batch or large-integer fidelity."
+      }
+    },
+    {
+      "object": {
+        "schema": "main",
+        "name": "detect_excel"
+      },
+      "notebook": "01_separate_spreadsheet_details_from_totals.ipynb",
+      "sql": [
+        {
+          "cell": "f009d7bf",
+          "reference": "excel.main.detect_excel"
+        },
+        {
+          "cell": "1f6c4e97",
+          "reference": "excel.main.detect_excel"
+        }
+      ],
+      "narrative_cells": [
+        "daee8c7e",
+        "b31fc451"
+      ],
+      "result_cells": [
+        "f009d7bf",
+        "1f6c4e97",
+        "6f312cd3"
+      ],
+      "interpretation_cells": [
+        "daee8c7e",
+        "6f312cd3"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root",
+        "reviewed_at": "2026-11-14T20:29:39.278662+00:00",
+        "notebook_sha256": "575e2fa69b4e754b5c47e0f88c065a553b4324cfc761592c12f8138b2a184be1",
+        "catalog_sha256": [
+          "f3679e4d2fd3cad387503cdc872d03f939665f85253401470c914fd7c7931180",
+          "3ddc9d312bdcf18f83d3cc04784b0561fce5517df5daa33c375b0d2ac6ed03a8"
+        ],
+        "purpose": "Verify output format and distinguish an absent sheet from a non-workbook input.",
+        "finding": "Both diagnostic reads yield zero rows, but XLSX detection remains present for the missing-sheet case and NULL for plain text. Export detection is combined with a full reread instead of equating recognized container bytes with value fidelity."
+      }
+    },
+    {
+      "object": {
+        "schema": "main",
+        "name": "formats"
+      },
+      "notebook": "01_separate_spreadsheet_details_from_totals.ipynb",
+      "sql": [
+        {
+          "cell": "1f6c4e97",
+          "reference": "excel.main.formats"
+        }
+      ],
+      "narrative_cells": [
+        "daee8c7e"
+      ],
+      "result_cells": [
+        "1f6c4e97"
+      ],
+      "interpretation_cells": [
+        "daee8c7e",
+        "6f312cd3"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root",
+        "reviewed_at": "2026-11-14T20:29:39.278662+00:00",
+        "notebook_sha256": "575e2fa69b4e754b5c47e0f88c065a553b4324cfc761592c12f8138b2a184be1",
+        "catalog_sha256": [
+          "f3679e4d2fd3cad387503cdc872d03f939665f85253401470c914fd7c7931180",
+          "3ddc9d312bdcf18f83d3cc04784b0561fce5517df5daa33c375b0d2ac6ed03a8"
+        ],
+        "purpose": "Join detected content format to supported read/write capabilities.",
+        "finding": "The recognized XLSX retains readable/writable flags and ZIP-container description. Unknown bytes retain NULL capabilities. These flags explain the zero-row diagnostic without claiming this fixture demonstrates legacy XLS parsing."
+      }
+    }
+  ]
+}

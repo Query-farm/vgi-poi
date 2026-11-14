@@ -1,0 +1,199 @@
+{
+  "query": "SELECT * FROM duckdb_functions() WHERE database_name='excel' ORDER BY schema_name,function_name",
+  "columns": [
+    "database_name",
+    "database_oid",
+    "schema_name",
+    "function_name",
+    "alias_of",
+    "function_type",
+    "description",
+    "comment",
+    "tags",
+    "return_type",
+    "parameters",
+    "parameter_types",
+    "varargs",
+    "macro_definition",
+    "has_side_effects",
+    "internal",
+    "extension_name",
+    "function_oid",
+    "examples",
+    "stability",
+    "categories"
+  ],
+  "rows": [
+    [
+      "excel",
+      "22592",
+      "main",
+      "detect_excel",
+      null,
+      "scalar",
+      "Detect whether a BLOB is an Excel workbook: returns 'xlsx', 'xls', or NULL (Apache POI).",
+      null,
+      {
+        "vgi.category": "Detection",
+        "vgi.doc_llm": "## detect_excel\n\nA scalar that classifies a `BLOB` as `'xlsx'` (a modern OOXML/XSSF workbook), `'xls'` (a legacy OLE2/HSSF workbook), or `NULL`. It is a **two-stage** check, not merely a magic-byte peek: it first matches the leading signature (`PK\\x03\\x04` for OOXML, the OLE2 header `D0 CF 11 E0` for `.xls`), then **actually opens the bytes with Apache POI** to confirm they parse as a spreadsheet. That second stage is why a plain `.zip`, a `.docx`, or a `.pptx` \u2014 all of which share the `PK` prefix \u2014 correctly return `NULL` instead of a false `'xlsx'`.\n\n`NULL` is returned for every non-workbook input, and the distinct paths that produce it are: the input is `NULL`; the `BLOB` is shorter than the 8-byte minimum; the leading signature matches no known format; or the signature matches but POI fails to open the bytes as a workbook (truncated, corrupt, or a different `PK`/OLE2 format). All of these collapse to a single `NULL` result \u2014 the function never raises. Detection is **content-based** and ignores any file name or extension, so it works on bytes that arrived over the wire or from another function. Use it to validate untrusted uploads before calling `read_excel`, to branch on workbook format, or to confirm that `write_xlsx` produced a valid workbook.",
+        "vgi.doc_md": "Identifies whether a `BLOB` is a Microsoft Excel workbook by matching its leading signature and then opening it with Apache POI to confirm, returning `'xlsx'`, `'xls'`, or `NULL`. Because it opens the bytes (rather than trusting the `PK`/OLE2 prefix alone), a plain `.zip` or a `.docx` returns `NULL`, not a false `'xlsx'`.\n\n**Usage**: pass it any `BLOB` \u2014 a file's bytes loaded with `read_blob`, an upload, or the output of `write_xlsx` \u2014 and it classifies the content, so a non-NULL result guards a workbook before you read it. Runnable, fully-qualified examples are attached to this object's metadata.\n\n**Notes**: detection is by content, not extension; legacy `.xls` (OLE2) and modern `.xlsx` (OOXML) are distinguished; anything else yields `NULL`.",
+        "vgi.example_queries": "[{\"sql\":\"SELECT excel.main.detect_excel(from_base64('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')) AS fmt;\",\"description\":\"Detect the format of a workbook's bytes \u2014 returns 'xlsx' for an OOXML workbook.\"},{\"sql\":\"SELECT excel.main.detect_excel('not a spreadsheet'::BLOB) IS NULL AS not_excel;\",\"description\":\"Non-Excel bytes return NULL, so a NULL check tells you the BLOB is not a workbook.\"}]",
+        "vgi.keywords": "[\"detect excel\",\"sniff format\",\"magic bytes\",\"file type\",\"xlsx\",\"xls\",\"ole2\",\"ooxml\",\"is excel\",\"content detection\",\"validate workbook\",\"apache poi\"]",
+        "vgi.title": "Detect Excel File Format"
+      },
+      "VARCHAR",
+      [
+        "doc"
+      ],
+      [
+        "ANY"
+      ],
+      null,
+      null,
+      false,
+      true,
+      null,
+      22596,
+      [
+        "SELECT excel.main.detect_excel(from_base64('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')) AS fmt;",
+        "SELECT excel.main.detect_excel('not a spreadsheet'::BLOB) IS NULL AS not_excel;"
+      ],
+      "CONSISTENT",
+      [
+        "spreadsheet",
+        "detection",
+        "poi"
+      ]
+    ],
+    [
+      "excel",
+      "22592",
+      "main",
+      "excel_sheets",
+      null,
+      "table",
+      "List the worksheets of an Excel workbook (.xls or .xlsx) with index, name, row count, and column count (Apache POI).",
+      null,
+      {
+        "vgi.category": "Reading",
+        "vgi.doc_llm": "## excel_sheets\n\nReturns the **worksheet directory** of an Excel workbook \u2014 one row per sheet \u2014 without reading any cell data. Accepts a `.xlsx` or legacy `.xls` file **path** *or* the raw workbook **bytes** as a `BLOB`.\n\nEach row gives the sheet's 0-based ordinal (`idx`), its `name`, the `rows` count (last row index + 1) and the maximum `cols` count across the sheet. Use it to discover sheet names before calling `read_excel(..., sheet := '<name>')`, or to gauge a workbook's size and shape cheaply.\n\nA corrupt or non-spreadsheet input yields **zero rows** (logged to stderr) rather than an error. Table-function arguments must be **literals** \u2014 pass bytes as a `BLOB` literal, not a subquery.",
+        "vgi.doc_md": "Lists the worksheets of a Microsoft Excel workbook (`.xls` or `.xlsx`), returning each sheet's ordinal, name, row count, and column count.\n\n**Usage**: give it a filesystem path to an `.xls`/`.xlsx` file, or the raw workbook bytes as a `BLOB` literal, and it returns one row per worksheet ordered by ordinal. Runnable, fully-qualified examples are attached to this object's metadata.\n\n**Notes**: a lightweight companion to `read_excel` for discovering sheet names and dimensions; supports both `.xls` (HSSF) and `.xlsx` (XSSF); inputs may be a file path or raw bytes.",
+        "vgi.example_queries": "[{\"sql\":\"SELECT idx, name, rows, cols FROM excel.main.excel_sheets(from_base64('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')) ORDER BY idx;\",\"description\":\"List every worksheet of a workbook (passed as inline bytes) with its dimensions.\"}]",
+        "vgi.keywords": "[\"excel sheets\",\"worksheets\",\"list sheets\",\"sheet names\",\"workbook directory\",\"tabs\",\"spreadsheet\",\"xlsx\",\"xls\",\"apache poi\",\"sheet count\",\"sheet dimensions\"]",
+        "vgi.result_columns_schema": "[{\"name\":\"idx\",\"type\":\"INTEGER\",\"description\":\"0-based sheet ordinal within the workbook.\"},{\"name\":\"name\",\"type\":\"VARCHAR\",\"description\":\"Worksheet name.\"},{\"name\":\"rows\",\"type\":\"INTEGER\",\"description\":\"Number of rows (last row index + 1).\"},{\"name\":\"cols\",\"type\":\"INTEGER\",\"description\":\"Maximum column count across the sheet's rows.\"}]",
+        "vgi.title": "List Excel Worksheets"
+      },
+      null,
+      [
+        "doc"
+      ],
+      [
+        "ANY"
+      ],
+      null,
+      null,
+      null,
+      true,
+      null,
+      22597,
+      [
+        "SELECT idx, name, rows, cols FROM excel.main.excel_sheets(from_base64('UEsDBBQAAAAIAAAAIVxuYbgN/gAAAC0CAAATAAAAW0NvbnRlbnRfVHlwZXNdLnhtbK2RzU7DMBCEX8XytYqdckAIJe2BnyNwKA+w2JvEiv/kdUv69jhp4YAKXDit7JnZb2Q328lZdsBEJviWr0XNGXoVtPF9y193j9UNZ5TBa7DBY8uPSHy7aXbHiMRK1lPLh5zjrZSkBnRAIkT0RelCcpDLMfUyghqhR3lV19dSBZ/R5yrPO/imuccO9jazh6lcn3oktMTZ3ck4s1oOMVqjIBddHrz+RqnOBFGSi4cGE2lVDFxeJMzKz4Bz7rk8TDIa2Quk/ASuuORk5XtI41sIo/h9yYWWoeuMQh3U3pWIoJgQNA2I2VmxTOHA+NXf/MVMchnrfy7ytf+zh1y+e/MBUEsDBBQAAAAIAAAAIVyY2uuLrgAAACcBAAALAAAAX3JlbHMvLnJlbHONz8EOgjAMBuBXWXqXgQdjDIOLMeFq8AHmVgYB1mWbCm/vjmI8eGz69/vTsl7miT3Rh4GsgCLLgaFVpAdrBNzay+4ILERptZzIooAVA9RVecVJxnQS+sEFlgwbBPQxuhPnQfU4y5CRQ5s2HflZxjR6w51UozTI93l+4P7TgK3JGi3AN7oA1q4O/7Gp6waFZ1KPGW38UfGVSLL0BqOAZeIv8uOdaMwSCrwq+ebB6g1QSwMEFAAAAAgAAAAhXIpWKgC6AAAAGQEAAA8AAAB4bC93b3JrYm9vay54bWyNj01uwkAMha8y8r5MYIFQlIRNhMQeDuBmHDIiY0f2AO3tmZay78p/ep/fa/ZfaXZ3UovCLaxXFTjiQULkSwvn0+FjB84ycsBZmFr4JoN91zxEr58iV1fkbC1MOS+19zZMlNBWshCXyyiaMJdRL94WJQw2EeU0+01VbX3CyPAi1PofhoxjHKiX4ZaI8wuiNGMu5m2Ki0HX/H6wv+oYUzHdY8YS42dzDCUlOK1jafQY1uC7xr9F/p2rewJQSwMEFAAAAAgAAAAhXFr9gmuxAAAAKAEAABoAAAB4bC9fcmVscy93b3JrYm9vay54bWwucmVsc43PyQrCQAwG4FcZcrdpPYhIp15E6FXqAwzTdKGdhcm49O0dPIgFD55C8pMvpDw+zSzuFHh0VkKR5SDIateOtpdwbc6bPQiOyrZqdpYkLMRwrMoLzSqmFR5GzyIZliUMMfoDIuuBjOLMebIp6VwwKqY29OiVnlRPuM3zHYZvA9amqFsJoW4LEM3i6R/bdd2o6eT0zZCNP07gw4WJB6KYUBV6ihI+I8Z3KbKkAlYlrj6sXlBLAwQUAAAACAAAACFcl6oyWswAAABWAQAAGAAAAHhsL3dvcmtzaGVldHMvc2hlZXQxLnhtbHWQXU7EMAyErxL5nXWbhxVCSVYgtBcADmBas43IT5VYXbg9aYUqhOBtPJ75ZNmcPmJQC5fqc7LQHzpQnIY8+nSx8PJ8vrkFVYXSSCEntvDJFU7OXHN5rxOzqNZP1cIkMt8h1mHiSPWQZ05t85ZLJGljuWCdC9O4lWJA3XVHjOQTOLN5jyTkTMlXVdodzR1Wcb+qxfUGF2dw+HYfelBiwafgEz9JaRlfnRFHYZ7IoLTsaqwFbMidq3eu3rj6F1f/w31l+ROLP07H/SfuC1BLAQIUAxQAAAAIAAAAIVxuYbgN/gAAAC0CAAATAAAAAAAAAAAAAACAAQAAAABbQ29udGVudF9UeXBlc10ueG1sUEsBAhQDFAAAAAgAAAAhXJja64uuAAAAJwEAAAsAAAAAAAAAAAAAAIABLwEAAF9yZWxzLy5yZWxzUEsBAhQDFAAAAAgAAAAhXIpWKgC6AAAAGQEAAA8AAAAAAAAAAAAAAIABBgIAAHhsL3dvcmtib29rLnhtbFBLAQIUAxQAAAAIAAAAIVxa/YJrsQAAACgBAAAaAAAAAAAAAAAAAACAAe0CAAB4bC9fcmVscy93b3JrYm9vay54bWwucmVsc1BLAQIUAxQAAAAIAAAAIVyXqjJazAAAAFYBAAAYAAAAAAAAAAAAAACAAdYDAAB4bC93b3Jrc2hlZXRzL3NoZWV0MS54bWxQSwUGAAAAAAUABQBFAQAA2AQAAAAA')) ORDER BY idx;"
+      ],
+      null,
+      [
+        "spreadsheet",
+        "excel",
+        "poi"
+      ]
+    ],
+    [
+      "excel",
+      "22592",
+      "main",
+      "read_excel",
+      null,
+      "table",
+      "Read every non-blank cell of an Excel workbook (.xls or .xlsx) as rows with type, A1 reference, evaluated value, and formula text (Apache POI).",
+      null,
+      {
+        "vgi.category": "Reading",
+        "vgi.doc_llm": "## read_excel\n\nReads an Excel workbook into SQL as **one row per non-blank cell**. Accepts a `.xlsx` (OOXML/XSSF) or legacy `.xls` (OLE2/HSSF) file **path** *or* the raw workbook **bytes** as a `BLOB`. The optional named argument `sheet := '<name>'` restricts output to a single worksheet. The whole workbook is parsed into memory and returned as a single result set (it buffers rather than incrementally streams), so cardinality scales with the workbook size.\n\nEach row carries the worksheet name, 0-based `row`/`col`, the A1-style `cell_ref` (e.g. `B3`), the cell `value`, the cell `type`, and the raw `formula` text for formula cells. `type` is one of `NUMERIC`, `STRING`, `BOOLEAN`, `FORMULA`, or `ERROR` \u2014 **blank cells are skipped entirely**, so `BLANK` never appears.\n\n**`value` is always `VARCHAR` text**, so cast it to work with it numerically or temporally. The rendering rules are: numbers with no fraction drop the trailing `.0` (`3.0` -> `3`); date-formatted numeric cells render as ISO-8601 `yyyy-MM-ddTHH:mm:ss`; booleans render as `true`/`false`; error cells render as the Excel error string (e.g. `#DIV/0!`). For a `FORMULA` cell, `formula` holds the expression text (without a leading `=`) and `value` holds the **evaluated** result rendered by these same rules; external-workbook links are never resolved (the cached value or an error is used).\n\nUse it to ingest spreadsheet data, audit formulas, or flatten a workbook for further SQL. A corrupt or non-spreadsheet input yields **zero rows** (logged to stderr) rather than an error, and a NULL document yields no rows. Table-function arguments must be **literals** \u2014 pass bytes as a `BLOB` literal, not a subquery.",
+        "vgi.doc_md": "Reads a Microsoft Excel workbook (`.xls` or `.xlsx`) and returns one row for every non-blank cell, including its worksheet, position, A1 reference, evaluated value, type, and (for formula cells) the formula text. `value` is always `VARCHAR` \u2014 numbers render without a trailing `.0`, dates as ISO-8601, booleans as `true`/`false` \u2014 so cast it (`value::DOUBLE`, `value::TIMESTAMP`) to compute on it. The `type` column is one of `NUMERIC`, `STRING`, `BOOLEAN`, `FORMULA`, or `ERROR`; blank cells are omitted rather than returned.\n\n**Usage**: point it at a filesystem path to an `.xls`/`.xlsx` file, add the named `sheet` argument to restrict output to one worksheet, or hand it the raw workbook bytes as a `BLOB` literal. Runnable, fully-qualified examples are attached to this object's metadata.\n\n**Notes**: formulas are evaluated and the result lands in `value`; both `.xls` (HSSF) and `.xlsx` (XSSF) are supported; a hostile or corrupt input returns no rows instead of failing the scan.",
+        "vgi.example_queries": "[{\"sql\":\"SELECT sheet, cell_ref, value, type FROM excel.main.read_excel(from_base64('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')) ORDER BY cell_ref;\",\"description\":\"Read every non-blank cell of a workbook (passed as inline bytes) as one row per cell.\"}]",
+        "vgi.keywords": "[\"read excel\",\"read xlsx\",\"read xls\",\"spreadsheet\",\"workbook\",\"cells\",\"worksheet\",\"formula\",\"A1 reference\",\"apache poi\",\"import excel\",\"parse spreadsheet\",\"ingest xlsx\"]",
+        "vgi.result_columns_schema": "[{\"name\":\"sheet\",\"type\":\"VARCHAR\",\"description\":\"Worksheet name the cell belongs to.\"},{\"name\":\"row\",\"type\":\"INTEGER\",\"description\":\"0-based row index of the cell.\"},{\"name\":\"col\",\"type\":\"INTEGER\",\"description\":\"0-based column index of the cell.\"},{\"name\":\"cell_ref\",\"type\":\"VARCHAR\",\"description\":\"A1-style cell reference, e.g. B3.\"},{\"name\":\"value\",\"type\":\"VARCHAR\",\"description\":\"Cell value rendered as text (numbers without a trailing .0, dates as ISO-8601, booleans as true/false); for a formula cell, the evaluated result. Cast to compute on it.\"},{\"name\":\"type\",\"type\":\"VARCHAR\",\"description\":\"Cell type: NUMERIC, STRING, BOOLEAN, FORMULA, or ERROR (blank cells are skipped).\"},{\"name\":\"formula\",\"type\":\"VARCHAR\",\"description\":\"Formula text for FORMULA cells (without a leading =), else NULL.\"}]",
+        "vgi.title": "Read Excel Workbook Cells"
+      },
+      null,
+      [
+        "doc",
+        "sheet"
+      ],
+      [
+        "ANY",
+        "VARCHAR"
+      ],
+      null,
+      null,
+      null,
+      true,
+      null,
+      22598,
+      [
+        "SELECT sheet, cell_ref, value, type FROM excel.main.read_excel(from_base64('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')) ORDER BY cell_ref;"
+      ],
+      null,
+      [
+        "spreadsheet",
+        "excel",
+        "poi"
+      ]
+    ],
+    [
+      "excel",
+      "22592",
+      "main",
+      "write_xlsx",
+      null,
+      "table",
+      "Serialize an input relation into an .xlsx workbook BLOB with typed cells and an optional bold header row (Apache POI).",
+      null,
+      {
+        "vgi.category": "Writing",
+        "vgi.doc_llm": "## write_xlsx\n\nA **table-in-out** function that consumes an input relation and emits a single-column (`xlsx` `BLOB`) result carrying that relation serialized as an `.xlsx` (OOXML) workbook. Named arguments: `sheet_name := 'Sheet1'` sets the worksheet name and `header := true` writes a **bold first row** of the input column names.\n\nCells are typed from the input columns: numeric columns become numeric cells, booleans become boolean cells, date/timestamp columns become date-formatted cells, and everything else is written as text. Because DuckDB rejects `length()` on a `BLOB`, use `octet_length(xlsx)` to size the result.\n\n**Streaming caveat**: the table-in-out transport delivers input batches with no separate finalize signal, so the workbook-so-far is emitted after each input batch. A typical single-batch input yields exactly one `BLOB` row containing the whole relation; an input large enough to span multiple Arrow batches yields one row per batch, the **last** of which is the complete workbook. Pair it with `detect_excel` to validate the output.",
+        "vgi.doc_md": "Serializes a SQL relation into a downloadable Microsoft Excel `.xlsx` workbook, returned as a `BLOB`, with typed cells and an optional bold header row.\n\n**Usage**: wrap the relation you want to export as the input subquery, optionally set `sheet_name` and toggle `header`, then read back the `xlsx` `BLOB` column and size it with `octet_length`. Runnable, fully-qualified examples are attached to this object's metadata.\n\n**Notes**: numeric/boolean/date columns keep their Excel cell types; use `octet_length` (not `length`) on the `BLOB`; for a multi-batch input the last emitted row is the complete workbook.",
+        "vgi.example_queries": "[{\"sql\":\"SELECT octet_length(xlsx) > 0 AS produced FROM excel.main.write_xlsx((SELECT 1 AS id, 'Ada' AS name), sheet_name := 'People');\",\"description\":\"Export a one-row query result to an .xlsx workbook BLOB on a named sheet and confirm bytes were produced.\"},{\"sql\":\"SELECT excel.main.detect_excel(xlsx) AS fmt FROM excel.main.write_xlsx((SELECT 1 AS id, 'Ada' AS name));\",\"description\":\"Round-trip check: the BLOB written by write_xlsx is detected as an 'xlsx' workbook.\"}]",
+        "vgi.keywords": "[\"write xlsx\",\"export excel\",\"to excel\",\"serialize spreadsheet\",\"workbook blob\",\"table to xlsx\",\"save xlsx\",\"generate excel\",\"apache poi\",\"header row\",\"sheet name\"]",
+        "vgi.result_columns_schema": "[{\"name\":\"xlsx\",\"type\":\"BLOB\",\"description\":\"The generated .xlsx workbook bytes (one row per input batch; the last row is the complete workbook).\"}]",
+        "vgi.title": "Write Relation To Xlsx Workbook"
+      },
+      null,
+      [
+        "input",
+        "header",
+        "sheet_name"
+      ],
+      [
+        "TABLE",
+        "BOOLEAN",
+        "VARCHAR"
+      ],
+      null,
+      null,
+      null,
+      true,
+      null,
+      22599,
+      [
+        "SELECT octet_length(xlsx) > 0 AS produced FROM excel.main.write_xlsx((SELECT 1 AS id, 'Ada' AS name), sheet_name := 'People');",
+        "SELECT excel.main.detect_excel(xlsx) AS fmt FROM excel.main.write_xlsx((SELECT 1 AS id, 'Ada' AS name));"
+      ],
+      null,
+      [
+        "spreadsheet",
+        "excel",
+        "poi"
+      ]
+    ]
+  ]
+}

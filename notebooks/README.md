@@ -1,62 +1,84 @@
-# VGI POI notebooks
+# Excel Workbooks
 
-[01 · Separate spreadsheet details from totals](01_separate_spreadsheet_details_from_totals.ipynb) uses the real Apache POI worker to read a synthetic Excel workbook, retain cell types and formulas, separate line items from summary rows, and verify a typed XLSX export by reading it back.
+[01 · Separate spreadsheet details from totals](01_separate_spreadsheet_details_from_totals.ipynb)
+reads an authored order workbook through the Apache POI worker. Visible SQL retains
+cell types and formula results, separates detail rows from totals, and exports a
+selected relation to XLSX before reading it back. Two SVG charts explain duplicate
+counting and the effect of including a return. Pending quantities stay unknown;
+numeric zero stays zero.
 
-## Run
-
-Install [uv](https://docs.astral.sh/uv/) and Java 21+ on `PATH`. On macOS with Homebrew Java, add `/opt/homebrew/opt/openjdk@21/bin` if needed. The release helper uses POSIX file locks on macOS/Linux. Initial setup needs network access for the Python environment, VGI extension and approximately 53 MB public JAR. All worksheet processing is local.
-
-From the repository root:
-
-```sh
-uv sync --project notebooks --frozen
-uv run --project notebooks --frozen python notebooks/execute.py
-```
-
-Or copy the entire `notebooks/` directory elsewhere, then:
+Open the notebook's **Open in Colab** link, or install [uv](https://docs.astral.sh/uv/)
+and run locally:
 
 ```sh
 cd notebooks
-uv sync --frozen
-uv run --frozen python execute.py
+uv sync --locked
+uv run --locked vgi-notebooks
 ```
 
-In VS Code, select `notebooks/.venv/bin/python` and use the notebook directory as the kernel working directory. For other Jupyter editors, optionally register this environment:
+A notebook opened on its own retrieves verified fixtures, chart code and the release
+launcher. The visible connection uses:
+
+```sql
+ATTACH 'excel' (TYPE vgi,
+  LOCATION 'uv run --frozen --python 3.13 --script poi_release.py v0.4.0');
+```
+
+The launcher downloads the public 53 MB JAR and verifies its SHA-256 before each
+launch. Its script lock pins an isolated `jdk4py==21.0.8.2` runtime and verifies the
+actual Java 21.0.8 binary. No system Java, Gradle build or worker checkout is needed.
+Initial setup requires network access; all workbook processing is local. The
+launcher supports macOS/Linux, including Colab's Linux environment.
+
+The Colab base package preserves compatible installed kernel and plotting libraries.
+The local environment additionally includes the runner; select
+`notebooks/.venv/bin/python` in an editor. A fresh preloaded local kernel checks the
+standalone bootstrap; a manual hosted-Colab run is not claimed. GitHub shows saved
+results and SVG charts, and does not honor executable-cell folding metadata.
+
+## Change the selection policy
+
+The saved default sets `INCLUDE_RETURNS=True`. Change it to `False`, restart and run
+all, or preserve the saved notebook with:
 
 ```sh
-uv run --project notebooks --frozen python -m ipykernel install --user --name vgi-poi-notebooks --display-name 'Python (vgi-poi notebooks)'
+uv run --locked vgi-notebooks --parameters '{"INCLUDE_RETURNS":false}' \
+  --output-dir artifacts/no-returns
 ```
 
-Restart and run all after changing the visible parameter. Imports, plotting, validation and cleanup source are folded. Connection and analytical SQL are expanded. The saved notebook embeds both charts and all useful outputs.
+The worksheet audit, formula evaluation and unresolved line stay fixed. Omitting
+the negative return increases the selected known amount and changes the exported
+rows; it does not create new sales or resolve the pending quantity.
 
-## Experiment
+## Fixture and interpretation
 
-```sh
-uv run --project notebooks --frozen python notebooks/execute.py \
-  --parameters '{"INCLUDE_RETURNS":false}' \
-  --output-dir notebooks/validation/no-returns
-```
+[assets/provenance.json](assets/provenance.json) records the synthetic input hashes
+and generator. `build_fixture.py` authors the two-sheet OOXML workbook with fixed
+ZIP timestamps; no business records or external-workbook links are involved.
+Formula caches deliberately contain 999999 so the notebook can verify that POI
+actually reevaluates the local formulas. A pending text quantity produces a formula
+error instead of zero. The blank row30 demonstrates why a worksheet extent is not
+a count of data records.
 
-Excluding the negative line changes the selected known amount and exported row count; the original worksheet audit stays fixed. The pending quantity remains unknown, separate from the legitimate zero. Reset `INCLUDE_RETURNS=True` for the saved default.
+The `formats` reference explains the difference between an XLSX with a missing sheet
+and unrecognized bytes when both readers return no rows. Capability flags describe
+supported formats, not proof of file completeness. The example does not demonstrate
+legacy XLS reads or external-link fallback.
 
-The runner rejects unknown parameters and requires a separate destination for overrides. It saves outputs only after a successful fresh-kernel run. Experiment copies include their relative assets and runtime companions. Each run overwrites only its own `validation/export/selected-lines.xlsx`; this generated workbook and review PNGs are ignored. To inspect the exported XLSX, run the notebook; it is not a committed asset. The notebook refuses an ambiguous multi-BLOB export.
+The export writes only the ignored `artifacts/export/selected-lines.xlsx`. It
+contains values rather than the original formulas, styles or notes. The worker
+emits a workbook-so-far per input batch; this tiny selection is checked to return
+one BLOB, and the save step refuses ambiguous multiple outputs. Thirteen checks
+reconcile the row populations, known cents, pending/zero distinctions and reread
+values/types. Small integer cents are used; arbitrary large integers and unsupported
+types need their own fidelity checks.
 
-## Release and fixtures
+All **5/5 named SQL surfaces**, including the writer and `formats` view, are
+covered. Complete catalogs, source review, successful cell receipts and narrative
+mappings are in [coverage.json](coverage.json) and [coverage/](coverage/). Current
+source changes are metadata/examples only; runtime results use public v0.4.0, with
+no claim of current-main binary execution. Green source CI is reused for these
+notebook-only edits.
 
-The visible `ATTACH` uses the [public v0.4.0 JAR](https://github.com/Query-farm/vgi-poi/releases/tag/v0.4.0), SHA-256 `aed3febbcd965485b12aa28e255abff1ff2e8fdf877d1be9bc75f0e088f7ee98`. `release_jar.py` verifies the digest on download and every cached launch, serializes downloads with a bounded lock, publishes atomically, then executes Java. Its cache is `${XDG_CACHE_HOME:-~/.cache}/vgi-notebook-jars/`. No Gradle, worker checkout or sibling repository is required. Upgrade the literal release and digest together, then rerun both parameter settings. The separate notebook environment pins Haybarn 2.0.0rc11.
-
-[build_fixture.py](build_fixture.py) deterministically creates [synthetic-orders.xlsx](assets/synthetic-orders.xlsx) using only Python's standard library. Run `uv run --project notebooks --frozen python notebooks/build_fixture.py` to reproduce it. The fixture has Orders and Notes sheets; six declared line rows, subtotal/grand-total formulas, a pending text quantity, a numeric zero, a blank row and a blank cell at row 30. Every formula cache deliberately contains 999999. POI evaluates the local formulas; the pending quantity produces `#VALUE!`. There are no external workbook links. [not-a-workbook.txt](assets/not-a-workbook.txt) is a deliberate plain-text invalid input.
-
-Row/column coordinates are zero-based while A1 cell references are one-based. Sheet row extent is not a record count. SQL maps this known header/schema explicitly; it is not a general spreadsheet-layout detector. IDs remain text, units and cents are explicitly typed integers, and the approval flag is boolean. A formula's type remains `FORMULA` even when its result is an error. Missing/failed values are not converted to zero.
-
-## Interpretation and export limits
-
-The source grand total covers known lines and excludes the unresolved pending amount. Adding summary cells to detail duplicates amounts. The return switch changes the selected scope and does not establish new activity or resolve unknown data. All amounts and identities are synthetic.
-
-The export contains selected values, not the original formulas, formatting or notes. It verifies exact small integers, leading-zero IDs and booleans. The worker converts numeric Arrow values into Excel numbers; large integers and unsupported types require their own checks. This is not a general lossless serialization claim. The writer emits a workbook-so-far per input batch; this small fixture yields one BLOB, which is explicitly verified. Do not select an arbitrary BLOB from a multi-batch result. The reader needs literal document arguments, so the notebook saves the bytes locally and rereads a literal path.
-
-A missing sheet and invalid input can both return zero cell rows. Format detection and the sheet inventory distinguish these cases. External workbook links are not resolved by the worker; this example tests only local formulas. It does not benchmark arbitrary formula support, XLS legacy files, scale or workbook round-trip fidelity.
-
-Validation covers both parameter settings, a detached directory with an empty release cache, four reviewed charts, thirteen notebook consistency checks and runner guards. Source checks passed 14 JUnit tests and 75 stdio / 81 HTTP / 75 Unix SQL assertions across three cases per transport, with zero skips. Executed metadata checks scored 100/100 L2 with zero findings. Default execution took 17.0 seconds and the detached no-returns experiment with an empty release cache took 6.3 seconds. The first chart is byte-identical across settings; selected rows change from five to four and known amounts from 99.00 to 111.50 USD. Notebook execution exclusively uses the published JAR. Original worker source, build files and committed SQL fixture bytes are preserved.
-
-Official Query.Farm Strata Sun and VGI artwork is copied unchanged from the approved notebook assets and linked at the top and bottom.
+The shared [notebook standard](https://github.com/Query-farm/vgi-example-notebooks/blob/main/docs/standard.md)
+owns setup, branding, execution and SVG publication.

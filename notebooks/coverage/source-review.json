@@ -1,0 +1,9 @@
+{
+  "basis": "Complete registration:read_excel,excel_sheets table functions;write_xlsx table-in-out;detect_excel scalar;formats view. Full release-to-current diff changes metadata/examples only; bindings, decoder, writer, dependencies and reference rows unchanged. Current binary not built or run.",
+  "current_revision": "75f5840841fb868acb154ad622e64d63c5e4a197",
+  "released_revision": "v0.4.0",
+  "source_ci": 43574171506,
+  "exact_current_runtime_count": 0,
+  "all_named_capabilities_included": true,
+  "write_xlsx_included": true
+}

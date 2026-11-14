@@ -1,0 +1,45 @@
+{
+  "query": "SELECT * FROM duckdb_views() WHERE database_name='excel' ORDER BY schema_name,view_name",
+  "columns": [
+    "database_name",
+    "database_oid",
+    "schema_name",
+    "schema_oid",
+    "view_name",
+    "view_oid",
+    "comment",
+    "tags",
+    "internal",
+    "temporary",
+    "column_count",
+    "sql",
+    "is_bound"
+  ],
+  "rows": [
+    [
+      "excel",
+      22592,
+      "main",
+      22791,
+      "formats",
+      22792,
+      "The Excel workbook formats this worker understands: the exact tag detect_excel returns for each, whether it can be read (read_excel / excel_sheets) and written (write_xlsx), and its on-disk container. A credential-free, zero-argument entry point for discovering the worker's format support.",
+      {
+        "category": "reference",
+        "domain": "spreadsheet",
+        "topic": "excel-format-support",
+        "vgi.category": "Reference",
+        "vgi.doc_llm": "A static reference relation listing the Excel workbook formats this worker supports. Each row gives the format tag (the exact value detect_excel returns \u2014 'xlsx' or 'xls'), a human description, the on-disk container, and boolean readable/writable flags. Use it as a zero-argument entry point to learn which formats can be read and which can be written before calling the read/write/detect functions.",
+        "vgi.doc_md": "# Supported Excel formats\n\nA curated, zero-argument reference relation you can browse to learn which Excel formats this worker handles \u2014 no file or credential required.\n\nEach row describes one workbook format:\n\n- **format** \u2014 the exact tag `detect_excel` returns (`xlsx` or `xls`).\n- **description** \u2014 the format's full name and Apache POI backend (XSSF for OOXML, HSSF for legacy OLE2).\n- **container** \u2014 how the bytes are packaged on disk.\n- **readable** / **writable** \u2014 whether `read_excel` / `excel_sheets` can parse it and whether `write_xlsx` can produce it.\n\nBoth formats are readable; only the modern `.xlsx` format is writable. Query this relation to branch on format capabilities before reading or writing a workbook.",
+        "vgi.example_queries": "[{\"sql\":\"SELECT format, description, container FROM excel.main.formats ORDER BY format;\",\"description\":\"Browse every Excel format the worker understands with its container.\"},{\"sql\":\"SELECT format FROM excel.main.formats WHERE writable ORDER BY format;\",\"description\":\"List only the formats write_xlsx can produce.\"}]",
+        "vgi.keywords": "[\"formats\",\"excel formats\",\"xlsx\",\"xls\",\"supported\",\"capabilities\",\"readable\",\"writable\",\"registry\",\"reference\",\"ooxml\",\"ole2\"]",
+        "vgi.title": "Supported Excel Formats"
+      },
+      false,
+      false,
+      null,
+      "CREATE VIEW formats AS SELECT format, description, container, readable, writable FROM (SELECT * FROM (VALUES ('xlsx', 'Office Open XML workbook (OOXML / XSSF)', 'ZIP / PK-signature container', true, true), ('xls', 'Legacy binary workbook (OLE2 / HSSF)', 'OLE2 compound document', true, false)) AS valueslist) AS t(format, description, container, readable, writable) ORDER BY format;",
+      false
+    ]
+  ]
+}

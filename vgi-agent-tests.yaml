@@ -51,3 +51,24 @@ tasks:
     success_criteria: "write_xlsx produces a valid OOXML workbook, so detect_excel returns 'xlsx'."
     ignore_column_names: true
     unordered: true
+
+  # Composed: the worksheet directory anti-joined to the formula cells.
+  - name: sheets_without_formulas
+    reference_sql: |-
+      SELECT s.name FROM excel.main.excel_sheets('test/sql/data/sample.xlsx') AS s
+      WHERE s.name NOT IN (
+        SELECT c.sheet FROM excel.main.read_excel('test/sql/data/sample.xlsx') AS c
+        WHERE c.formula IS NOT NULL)
+    success_criteria: "Only the 'Other' sheet has no formula cells; 'Numbers' holds C1 = A1+B1."
+    ignore_column_names: true
+    unordered: true
+
+  # Composed: content detection (detect_excel) joined to the formats capability view.
+  - name: read_only_files
+    reference_sql: |-
+      SELECT parse_filename(b.filename) FROM read_blob('test/sql/data/*') AS b
+      JOIN excel.main.formats AS f ON f.format = excel.main.detect_excel(b.content)
+      WHERE f.readable AND NOT f.writable
+    success_criteria: "Only sample.xls (legacy OLE2 .xls) is readable but not writable; sample.xlsx is writable and garbage.bin is not a workbook."
+    ignore_column_names: true
+    unordered: true

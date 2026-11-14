@@ -80,7 +80,8 @@ public final class WriteXlsxFunction implements TableInOutFunction {
                     "SELECT excel.main.detect_excel(xlsx) AS fmt FROM excel.main.write_xlsx("
                             + "(SELECT 1 AS id, 'Ada' AS name));",
                     "Round-trip check: the BLOB written by write_xlsx is detected as an "
-                            + "'xlsx' workbook."));
+                            + "'xlsx' workbook."),
+            Examples.FORMULA_EXPORT);
 
     @Override public FunctionMetadata metadata() {
         return FunctionMetadata.describe(

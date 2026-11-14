@@ -1,0 +1,79 @@
+# name: test/sql/composed.test
+# group: [vgi_poi]
+#
+# Composed queries that combine several of the worker's objects (these mirror the
+# composed metadata examples in Examples.java and the README).
+
+require-env VGI_POI_WORKER
+
+statement ok
+LOAD vgi;
+
+statement ok
+ATTACH 'excel' AS excel (TYPE vgi, LOCATION '{VGI_POI_WORKER}');
+
+# excel_sheets LEFT JOIN read_excel: per-sheet used range vs. cell/formula counts.
+query IIIIII
+SELECT s.idx, s.name, s.rows, s.cols, count(c.cell_ref) AS cells, count(c.formula) AS formulas
+FROM excel.main.excel_sheets('test/sql/data/sample.xlsx') AS s
+LEFT JOIN excel.main.read_excel('test/sql/data/sample.xlsx') AS c ON c.sheet = s.name
+GROUP BY s.idx, s.name, s.rows, s.cols ORDER BY s.idx;
+----
+0	Numbers	2	3	6	1
+1	Other	1	1	1	0
+
+# read_blob + detect_excel + formats view: content-based upload triage.
+query III
+SELECT parse_filename(b.filename) AS file, excel.main.detect_excel(b.content) AS fmt, f.readable
+FROM read_blob('test/sql/data/*') AS b
+LEFT JOIN excel.main.formats AS f ON f.format = excel.main.detect_excel(b.content)
+ORDER BY file;
+----
+garbage.bin	NULL	NULL
+sample.xls	xls	true
+sample.xlsx	xlsx	true
+
+# read_excel -> write_xlsx -> detect_excel: legacy .xls formula audit to .xlsx.
+query II
+SELECT octet_length(xlsx) > 0 AS produced, excel.main.detect_excel(xlsx) AS fmt
+FROM excel.main.write_xlsx((SELECT sheet, cell_ref, formula, value
+  FROM excel.main.read_excel('test/sql/data/sample.xls')
+  WHERE formula IS NOT NULL ORDER BY sheet, cell_ref), sheet_name := 'Formulas', header := true);
+----
+true	xlsx
+
+# The formula cells that audit exports.
+query IIII
+SELECT sheet, cell_ref, formula, value FROM excel.main.read_excel('test/sql/data/sample.xls')
+WHERE formula IS NOT NULL ORDER BY sheet, cell_ref;
+----
+Numbers	C1	A1+B1	5
+
+# Agent-task graders (vgi-agent-tests.yaml): sheets_without_formulas, read_only_files.
+query I
+SELECT s.name FROM excel.main.excel_sheets('test/sql/data/sample.xlsx') AS s
+WHERE s.name NOT IN (
+  SELECT c.sheet FROM excel.main.read_excel('test/sql/data/sample.xlsx') AS c
+  WHERE c.formula IS NOT NULL);
+----
+Other
+
+query I
+SELECT parse_filename(b.filename) FROM read_blob('test/sql/data/*') AS b
+JOIN excel.main.formats AS f ON f.format = excel.main.detect_excel(b.content)
+WHERE f.readable AND NOT f.writable;
+----
+sample.xls
+
+# README composed example (GROUP BY ALL form).
+query IIIII
+SELECT s.name, s.rows, s.cols, count(c.cell_ref) AS cells, count(c.formula) AS formulas
+FROM excel.excel_sheets('test/sql/data/sample.xlsx') AS s
+LEFT JOIN excel.read_excel('test/sql/data/sample.xlsx') AS c ON c.sheet = s.name
+GROUP BY ALL ORDER BY s.name;
+----
+Numbers	2	3	6	1
+Other	1	1	1	0
+
+statement ok
+DETACH excel;

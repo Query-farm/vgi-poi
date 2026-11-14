@@ -1,5 +1,7 @@
 package farm.query.vgi.poi;
 
+import farm.query.vgi.protocol.FunctionExample;
+
 /**
  * Self-contained, runnable example payloads.
  *
@@ -53,4 +55,49 @@ final class Examples {
 
     /** {@link #XLSX_B64} as a DuckDB {@code BLOB} expression for example SQL. */
     static final String XLSX = "from_base64('" + XLSX_B64 + "')";
+
+    /** The committed two-sheet fixture (Numbers: 6 cells incl. formula C1=A1+B1; Other: 1 cell). */
+    static final String SAMPLE_XLSX = "'test/sql/data/sample.xlsx'";
+
+    // ---- Composed examples: several of this worker's objects in one query. ----
+    // Each is defined once here and referenced from the schema-level list and the
+    // example list of the object that drives it. They use the repo's committed
+    // fixtures (paths resolve against the worker's CWD = repo root), because
+    // inline workbook bytes would have to be spelled twice per query.
+
+    /** excel_sheets LEFT JOIN read_excel: per-sheet dimensions vs. cell/formula counts. */
+    static final FunctionExample SHEET_AUDIT = Meta.example(
+            "SELECT s.idx, s.name, s.rows, s.cols, count(c.cell_ref) AS cells, "
+                    + "count(c.formula) AS formulas "
+                    + "FROM excel.main.excel_sheets(" + SAMPLE_XLSX + ") AS s "
+                    + "LEFT JOIN excel.main.read_excel(" + SAMPLE_XLSX + ") AS c ON c.sheet = s.name "
+                    + "GROUP BY s.idx, s.name, s.rows, s.cols ORDER BY s.idx;",
+            "Audit a workbook sheet by sheet: join the worksheet directory to its cells to "
+                    + "report each sheet's used-range size next to how many non-blank cells and "
+                    + "formula cells it holds (sample.xlsx: Numbers 2x3 with 6 cells / 1 formula, "
+                    + "Other 1x1 with 1 cell / 0 formulas).");
+
+    /** read_blob + detect_excel + the formats view: classify uploads by content. */
+    static final FunctionExample UPLOAD_TRIAGE = Meta.example(
+            "SELECT parse_filename(b.filename) AS file, "
+                    + "excel.main.detect_excel(b.content) AS fmt, f.readable "
+                    + "FROM read_blob('test/sql/data/*') AS b "
+                    + "LEFT JOIN excel.main.formats AS f "
+                    + "ON f.format = excel.main.detect_excel(b.content) ORDER BY file;",
+            "Triage a directory of files by content, not extension: detect each file's Excel "
+                    + "format and look it up in the formats view to see whether read_excel can "
+                    + "read it (sample.xls -> xls, sample.xlsx -> xlsx, both readable; the "
+                    + "non-Excel garbage.bin gets NULL).");
+
+    /** read_excel feeding write_xlsx, checked with detect_excel: legacy .xls formula audit. */
+    static final FunctionExample FORMULA_EXPORT = Meta.example(
+            "SELECT octet_length(xlsx) > 0 AS produced, excel.main.detect_excel(xlsx) AS fmt "
+                    + "FROM excel.main.write_xlsx((SELECT sheet, cell_ref, formula, value "
+                    + "FROM excel.main.read_excel('test/sql/data/sample.xls') "
+                    + "WHERE formula IS NOT NULL ORDER BY sheet, cell_ref), "
+                    + "sheet_name := 'Formulas', header := true);",
+            "Build a formula-audit deliverable from a legacy .xls: read its formula cells "
+                    + "(sheet, cell, formula text, evaluated value) and export them to a new "
+                    + ".xlsx workbook with a header row, confirming the output is detected as "
+                    + "'xlsx'.");
 }

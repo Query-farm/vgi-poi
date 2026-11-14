@@ -30,6 +30,12 @@ FROM excel.read_excel('/data/book.xlsx');
 -- the worksheet directory
 SELECT * FROM excel.excel_sheets('/data/book.xlsx');
 
+-- combine them: each sheet's used range next to its cell and formula counts
+SELECT s.name, s.rows, s.cols, count(c.cell_ref) AS cells, count(c.formula) AS formulas
+FROM excel.excel_sheets('/data/book.xlsx') AS s
+LEFT JOIN excel.read_excel('/data/book.xlsx') AS c ON c.sheet = s.name
+GROUP BY ALL ORDER BY s.name;
+
 -- serialize a query result into an .xlsx BLOB
 SELECT octet_length(xlsx)
 FROM excel.write_xlsx((SELECT id, name, score FROM results));

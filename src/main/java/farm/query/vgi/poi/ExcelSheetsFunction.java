@@ -33,7 +33,8 @@ public final class ExcelSheetsFunction implements TableFunction {
                     "SELECT idx, name, rows, cols FROM excel.main.excel_sheets("
                             + Examples.XLSX + ") ORDER BY idx;",
                     "List every worksheet of a workbook (passed as inline bytes) with "
-                            + "its dimensions."));
+                            + "its dimensions."),
+            Examples.SHEET_AUDIT);
 
     @Override public FunctionMetadata metadata() {
         return FunctionMetadata.describe(

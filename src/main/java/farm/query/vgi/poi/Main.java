@@ -258,6 +258,18 @@ public final class Main {
                 has + "Separately, export the one-row relation SELECT 1 AS id, 'Ada' AS name to an "
                         + ".xlsx workbook using this worker, then confirm the produced bytes are a "
                         + "valid Excel workbook. Return the single detected format string."));
+        // Composed tasks: each needs two of the worker's objects in one query.
+        tasks.add(agentTask(
+                "sheets_without_formulas",
+                has + "Which worksheets of that workbook contain no formula cells at all? Return "
+                        + "the worksheet name only, one per row."));
+        tasks.add(agentTask(
+                "read_only_files",
+                "You are working with a VGI worker that reads and writes Excel spreadsheets. The "
+                        + "directory `test/sql/data/` (repo-relative) holds several files. Judging "
+                        + "each file by its content (not its extension), which of them are Excel "
+                        + "workbooks this worker can read but cannot write? Return just the file "
+                        + "name without its directory (e.g. `report.xlsx`), one per row."));
         return tasksToJson(tasks);
     }
 
@@ -341,6 +353,33 @@ public final class Main {
                 + "]";
     }
 
+    /**
+     * Schema-level example list: one per object, then the composed examples that
+     * combine several of them (each also appears on its driving object's list).
+     */
+    private static final java.util.List<farm.query.vgi.protocol.FunctionExample> SCHEMA_EXAMPLES =
+            Meta.examples(
+                    Meta.example(
+                            "SELECT sheet, cell_ref, value, type FROM "
+                                    + "excel.main.read_excel('book.xlsx');",
+                            "Read a workbook's non-blank cells, projecting the sheet, A1 "
+                                    + "reference, value and type of each."),
+                    Meta.example(
+                            "SELECT idx, name, rows, cols FROM excel.main.excel_sheets('book.xlsx');",
+                            "List a workbook's worksheets with their dimensions."),
+                    Meta.example(
+                            "SELECT octet_length(xlsx) AS bytes FROM excel.main.write_xlsx("
+                                    + "(SELECT 1 AS id, 'Ada' AS name), sheet_name := 'People');",
+                            "Export a query result to an .xlsx workbook BLOB on a named sheet "
+                                    + "and size the bytes."),
+                    Meta.example(
+                            "SELECT excel.main.detect_excel((SELECT content FROM "
+                                    + "read_blob('book.xlsx')));",
+                            "Detect the format of a file's bytes — 'xlsx', 'xls', or NULL."),
+                    Examples.SHEET_AUDIT,
+                    Examples.UPLOAD_TRIAGE,
+                    Examples.FORMULA_EXPORT);
+
     private static java.util.Map<String, String> schemaTags() {
         var t = new java.util.LinkedHashMap<String, String>();
         t.put("vgi.title", "Excel Read & Write");
@@ -394,21 +433,7 @@ public final class Main {
         // VGI515: described, catalog-qualified example queries — a JSON list of
         // {description, sql}, each example projecting explicit columns (never a
         // bare SELECT *, VGI514).
-        t.put(
-                "vgi.example_queries",
-                "[{\"description\":\"Read a workbook's non-blank cells, projecting the sheet, "
-                        + "A1 reference, value and type of each.\",\"sql\":\"SELECT sheet, cell_ref, "
-                        + "value, type FROM excel.main.read_excel('book.xlsx');\"},"
-                        + "{\"description\":\"List a workbook's worksheets with their dimensions.\","
-                        + "\"sql\":\"SELECT idx, name, rows, cols FROM "
-                        + "excel.main.excel_sheets('book.xlsx');\"},"
-                        + "{\"description\":\"Export a query result to an .xlsx workbook BLOB on a "
-                        + "named sheet and size the bytes.\",\"sql\":\"SELECT octet_length(xlsx) AS "
-                        + "bytes FROM excel.main.write_xlsx((SELECT 1 AS id, 'Ada' AS name), "
-                        + "sheet_name := 'People');\"},"
-                        + "{\"description\":\"Detect the format of a file's bytes — 'xlsx', 'xls', or "
-                        + "NULL.\",\"sql\":\"SELECT excel.main.detect_excel((SELECT content FROM "
-                        + "read_blob('book.xlsx')));\"}]");
+        t.put("vgi.example_queries", Meta.exampleQueriesJson(SCHEMA_EXAMPLES));
         return t;
     }
 

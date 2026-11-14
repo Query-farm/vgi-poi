@@ -39,7 +39,8 @@ public final class DetectExcelFunction extends ScalarFn {
                     "SELECT excel.main.detect_excel('not a spreadsheet'::BLOB) IS NULL "
                             + "AS not_excel;",
                     "Non-Excel bytes return NULL, so a NULL check tells you the BLOB is "
-                            + "not a workbook."));
+                            + "not a workbook."),
+            Examples.UPLOAD_TRIAGE);
 
     @Override public FunctionMetadata metadata() {
         return FunctionMetadata.describe(description())

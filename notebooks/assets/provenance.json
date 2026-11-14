@@ -1,0 +1,11 @@
+{
+  "kind": "synthetic authored OOXML fixture",
+  "source_repository": "Query-farm/vgi-poi",
+  "source_revision": "75f5840841fb868acb154ad622e64d63c5e4a197",
+  "generator": "notebooks/build_fixture.py",
+  "scope": "Two sheets. Numeric quantities/cents, zero, return, pending text, deliberately stale formula caches999999, blank row30. Invalid document is authored plain text. No business records or external workbook links.",
+  "files": {
+    "assets/synthetic-orders.xlsx": "ceb0a800bab13d43ac3a97806b61136683361bd1cf3aac6827a6f26e856cfdd4",
+    "assets/not-a-workbook.txt": "1e2f3b33b864aa9d02e4c4a7e88f6fd3619c793cbdda1df8258634448838c7df"
+  }
+}

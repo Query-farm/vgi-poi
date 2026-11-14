@@ -10,7 +10,7 @@ statement ok
 LOAD vgi;
 
 statement ok
-ATTACH 'excel' AS excel (TYPE vgi, LOCATION '${VGI_POI_WORKER}');
+ATTACH 'excel' AS excel (TYPE vgi, LOCATION '{VGI_POI_WORKER}');
 
 # ---- read_excel over an .xlsx -----------------------------------------------
 

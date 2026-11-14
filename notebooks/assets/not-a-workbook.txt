@@ -1,0 +1,1 @@
+Synthetic plain text input; this is not an Excel workbook.

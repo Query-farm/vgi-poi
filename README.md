@@ -244,3 +244,7 @@ Written by [Query.Farm](https://query.farm).
 
 Copyright 2026 Query Farm LLC - https://query.farm
 
+
+## Notebooks
+
+[Executed Excel walkthrough](notebooks/README.md): inspect formulas and types, separate details from summaries, and verify a typed workbook export.

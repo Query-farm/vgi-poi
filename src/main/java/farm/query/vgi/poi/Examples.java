@@ -11,92 +11,94 @@ import farm.query.vgi.protocol.FunctionExample;
  * only constant arguments, so a real, data-returning example must embed a
  * workbook inline rather than a file path or a subquery.
  *
- * <p>{@link #XLSX_B64} is a hand-minimised two-row {@code .xlsx} workbook (sheet
- * {@code "Data"}: A1=1, B1="alpha", A2=2, B2="beta"; only the five required OOXML
- * parts, inline strings, no styles), base64-encoded. At ~2.1k characters it keeps
- * a tag that carries one inline-workbook example under vgi-lint's 4,000-character
- * agent-context limit (VGI417); the old POI-written workbook spelled as
- * {@code \x..} hex was ~11k characters. Base64 has no backslashes or quotes, so
- * the same SQL is valid inside a JSON tag and a {@code withExamples} entry.
+ * <p>{@link #XLSX_B64} is a hand-minimised one-sheet {@code .xlsx} workbook (sheet
+ * {@code "Numbers"}: A1=2, B1=3, C1=A1+B1 (cached value 5), A2="hello"; only the
+ * five required OOXML parts with one-letter part names, inline strings, no
+ * styles), base64-encoded. At ~1.7k characters a composed example can spell it
+ * twice (excel_sheets JOIN read_excel) and stay under the 4,000 characters the
+ * agent simulator shows per example; every tag stays under vgi-lint's
+ * agent-context limits (VGI417). Base64 has no backslashes or quotes, so the same
+ * SQL is valid inside a JSON tag and a {@code withExamples} entry.
+ *
+ * <p>Examples never name a local file: a path like {@code 'book.xlsx'} or
+ * {@code 'test/sql/data/sample.xlsx'} exists only in this repo, so for every user
+ * the readers return no rows (VGI516/VGI913). Files read with DuckDB's
+ * {@code read_blob()} use URLs pinned to a release tag instead.
  */
 final class Examples {
 
     private Examples() {}
 
-    /** Base64 of a minimal two-row .xlsx workbook. */
+    /** Base64 of a minimal one-sheet .xlsx workbook with a formula cell. */
     static final String XLSX_B64 =
-            "UEsDBBQAAAAIAAAAIVxuYbgN/gAAAC0CAAATAAAAW0NvbnRlbnRfVHlwZXNdLnhtbK2RzU7DMBCEX8Xy"
-            + "tYqdckAIJe2BnyNwKA+w2JvEiv/kdUv69jhp4YAKXDit7JnZb2Q328lZdsBEJviWr0XNGXoVtPF9y193"
-            + "j9UNZ5TBa7DBY8uPSHy7aXbHiMRK1lPLh5zjrZSkBnRAIkT0RelCcpDLMfUyghqhR3lV19dSBZ/R5yrP"
-            + "O/imuccO9jazh6lcn3oktMTZ3ck4s1oOMVqjIBddHrz+RqnOBFGSi4cGE2lVDFxeJMzKz4Bz7rk8TDIa"
-            + "2Quk/ASuuORk5XtI41sIo/h9yYWWoeuMQh3U3pWIoJgQNA2I2VmxTOHA+NXf/MVMchnrfy7ytf+zh1y+"
-            + "e/MBUEsDBBQAAAAIAAAAIVyY2uuLrgAAACcBAAALAAAAX3JlbHMvLnJlbHONz8EOgjAMBuBXWXqXgQdj"
-            + "DIOLMeFq8AHmVgYB1mWbCm/vjmI8eGz69/vTsl7miT3Rh4GsgCLLgaFVpAdrBNzay+4ILERptZzIooAV"
-            + "A9RVecVJxnQS+sEFlgwbBPQxuhPnQfU4y5CRQ5s2HflZxjR6w51UozTI93l+4P7TgK3JGi3AN7oA1q4O"
-            + "/7Gp6waFZ1KPGW38UfGVSLL0BqOAZeIv8uOdaMwSCrwq+ebB6g1QSwMEFAAAAAgAAAAhXIpWKgC6AAAA"
-            + "GQEAAA8AAAB4bC93b3JrYm9vay54bWyNj01uwkAMha8y8r5MYIFQlIRNhMQeDuBmHDIiY0f2AO3tmZay"
-            + "78p/ep/fa/ZfaXZ3UovCLaxXFTjiQULkSwvn0+FjB84ycsBZmFr4JoN91zxEr58iV1fkbC1MOS+19zZM"
-            + "lNBWshCXyyiaMJdRL94WJQw2EeU0+01VbX3CyPAi1PofhoxjHKiX4ZaI8wuiNGMu5m2Ki0HX/H6wv+oY"
-            + "UzHdY8YS42dzDCUlOK1jafQY1uC7xr9F/p2rewJQSwMEFAAAAAgAAAAhXFr9gmuxAAAAKAEAABoAAAB4"
-            + "bC9fcmVscy93b3JrYm9vay54bWwucmVsc43PyQrCQAwG4FcZcrdpPYhIp15E6FXqAwzTdKGdhcm49O0d"
-            + "PIgFD55C8pMvpDw+zSzuFHh0VkKR5SDIateOtpdwbc6bPQiOyrZqdpYkLMRwrMoLzSqmFR5GzyIZliUM"
-            + "MfoDIuuBjOLMebIp6VwwKqY29OiVnlRPuM3zHYZvA9amqFsJoW4LEM3i6R/bdd2o6eT0zZCNP07gw4WJ"
-            + "B6KYUBV6ihI+I8Z3KbKkAlYlrj6sXlBLAwQUAAAACAAAACFcl6oyWswAAABWAQAAGAAAAHhsL3dvcmtz"
-            + "aGVldHMvc2hlZXQxLnhtbHWQXU7EMAyErxL5nXWbhxVCSVYgtBcADmBas43IT5VYXbg9aYUqhOBtPJ75"
-            + "ZNmcPmJQC5fqc7LQHzpQnIY8+nSx8PJ8vrkFVYXSSCEntvDJFU7OXHN5rxOzqNZP1cIkMt8h1mHiSPWQ"
-            + "Z05t85ZLJGljuWCdC9O4lWJA3XVHjOQTOLN5jyTkTMlXVdodzR1Wcb+qxfUGF2dw+HYfelBiwafgEz9J"
-            + "aRlfnRFHYZ7IoLTsaqwFbMidq3eu3rj6F1f/w31l+ROLP07H/SfuC1BLAQIUAxQAAAAIAAAAIVxuYbgN"
-            + "/gAAAC0CAAATAAAAAAAAAAAAAACAAQAAAABbQ29udGVudF9UeXBlc10ueG1sUEsBAhQDFAAAAAgAAAAh"
-            + "XJja64uuAAAAJwEAAAsAAAAAAAAAAAAAAIABLwEAAF9yZWxzLy5yZWxzUEsBAhQDFAAAAAgAAAAhXIpW"
-            + "KgC6AAAAGQEAAA8AAAAAAAAAAAAAAIABBgIAAHhsL3dvcmtib29rLnhtbFBLAQIUAxQAAAAIAAAAIVxa"
-            + "/YJrsQAAACgBAAAaAAAAAAAAAAAAAACAAe0CAAB4bC9fcmVscy93b3JrYm9vay54bWwucmVsc1BLAQIU"
-            + "AxQAAAAIAAAAIVyXqjJazAAAAFYBAAAYAAAAAAAAAAAAAACAAdYDAAB4bC93b3Jrc2hlZXRzL3NoZWV0"
-            + "MS54bWxQSwUGAAAAAAUABQBFAQAA2AQAAAAA";
+            "UEsDBBQAAAAIAAAAIVxqtbuDxgAAAKEBAAATAAAAW0NvbnRlbnRfVHlwZXNdLnhtbK2Ru27CQBBFf8Xa"
+            + "FnkHUVBEtptACxT5gdF6jFfsSzsDJn+ftRMaCiSkVPO4d+4ppvn6TsTV3bvArRpF0gcAm5E8so6JQlGG"
+            + "mD1KGfMZEpoLngk26/UWTAxCQWqZM1TX7GjAq5Nqfy9rtjG0KpNjVX3+GmdWqzAlZw1K0eEW+idK/UfQ"
+            + "5XLx8GgTr4pBQdccb5Sz7ak6YZYD+hIHk57FtxhxGKyhPpqrLyeaUybseSQS7/RStUcbXlHxn6lTzJel"
+            + "f0Bh+Uz3A1BLAwQUAAAACAAAACFcOhZJ7n8AAADjAAAACwAAAF9yZWxzLy5yZWxzjc89CgIxEAXgq4Q5"
+            + "wM5iYSFJKhtb8QJDnGyCmx+SEfX2plzFwvLxHh88feaVJJbcQ6xdPdOau4EgUg+I3QVO1KdSOY/Gl5ZI"
+            + "RmwLVnI3Whh387zHtjXA6q2pTlcDDdTlVfkfuHgfHR+LuyfO8sP/WgyZ2sJi4DENCtBq/Phk31BLAwQU"
+            + "AAAACAAAACFcOZz2P5EAAADiAAAABQAAAHcueG1sjY8xDoMwDEWvEvkANe3QAQFTly69QwDTRMVxZAe1"
+            + "xy+Csney///y+3LzFn31Ii/34TlZC6GUXCPaEIi9nSRTWpNJlH1ZpT7RspIfLRAVnvFSVVdkHxPshFr/"
+            + "Ycg0xYFuMixMqewQpdmXKMlCzAZdszXYb7rkmVp4LNyTGrjNvI8tnMFpHdfFA3YNHkd4/NV9AVBLAwQU"
+            + "AAAACAAAACFcIdiTl4MAAADeAAAAEAAAAF9yZWxzL3cueG1sLnJlbHONz7sKAjEQheFXCXmAncXCQrKp"
+            + "bGzFFxji5MJuLmRG1Lc35QoWlocfPjjmShtKqoVjaqxeeSu86CjSTgDsImXkqTYqo/jaM8qYPUBDt2Ig"
+            + "OMzzEfre0NbsTXW5Lxq1ur0b/QNX75Ojc3WPTEV++PCsfeVIJAPFHkiGPw1FgzXwdcd+AFBLAwQUAAAA"
+            + "CAAAACFc9/D39agAAAARAQAABQAAAGEueG1sVZBdCsIwEISvUvIquDaiD5IutHoDTxBqaor5KcnSenyT"
+            + "KlHfZr+dGZYViw+PqJWi6mmNiw3TRNMJIPZaWRm3flIubQYfrKQ0hjvEKSh5W0PWAN/tjmDl6BiKlV0k"
+            + "SRTBL1VoWJ1on0Wb1YxcwIwC+g/t3nT/T8+ZDtjWm64WMGTHoTggNZd6Xuo5q6hhozOjU1cKiY8RBaFW"
+            + "xngBlIIZfBvg51goX8AXUEsBAhQDFAAAAAgAAAAhXGq1u4PGAAAAoQEAABMAAAAAAAAAAAAAAIABAAAA"
+            + "AFtDb250ZW50X1R5cGVzXS54bWxQSwECFAMUAAAACAAAACFcOhZJ7n8AAADjAAAACwAAAAAAAAAAAAAA"
+            + "gAH3AAAAX3JlbHMvLnJlbHNQSwECFAMUAAAACAAAACFcOZz2P5EAAADiAAAABQAAAAAAAAAAAAAAgAGf"
+            + "AQAAdy54bWxQSwECFAMUAAAACAAAACFcIdiTl4MAAADeAAAAEAAAAAAAAAAAAAAAgAFTAgAAX3JlbHMv"
+            + "dy54bWwucmVsc1BLAQIUAxQAAAAIAAAAIVz38Pf1qAAAABEBAAAFAAAAAAAAAAAAAACAAQQDAABhLnht"
+            + "bFBLBQYAAAAABQAFAB4BAADPAwAAAAA=";
 
     /** {@link #XLSX_B64} as a DuckDB {@code BLOB} expression for example SQL. */
     static final String XLSX = "from_base64('" + XLSX_B64 + "')";
 
-    /** The committed two-sheet fixture (Numbers: 6 cells incl. formula C1=A1+B1; Other: 1 cell). */
-    static final String SAMPLE_XLSX = "'test/sql/data/sample.xlsx'";
+    /** The committed test fixtures, served from GitHub at the v0.4.0 release tag. */
+    static final String FIXTURES_URL =
+            "https://raw.githubusercontent.com/Query-farm/vgi-poi/v0.4.0/test/sql/data/";
 
     // ---- Composed examples: several of this worker's objects in one query. ----
     // Each is defined once here and referenced from the schema-level list and the
-    // example list of the object that drives it. They use the repo's committed
-    // fixtures (paths resolve against the worker's CWD = repo root), because
-    // inline workbook bytes would have to be spelled twice per query.
+    // example list of the object that drives it.
 
     /** excel_sheets LEFT JOIN read_excel: per-sheet dimensions vs. cell/formula counts. */
     static final FunctionExample SHEET_AUDIT = Meta.example(
             "SELECT s.idx, s.name, s.rows, s.cols, count(c.cell_ref) AS cells, "
                     + "count(c.formula) AS formulas "
-                    + "FROM excel.main.excel_sheets(" + SAMPLE_XLSX + ") AS s "
-                    + "LEFT JOIN excel.main.read_excel(" + SAMPLE_XLSX + ") AS c ON c.sheet = s.name "
+                    + "FROM excel.main.excel_sheets(" + XLSX + ") AS s "
+                    + "LEFT JOIN excel.main.read_excel(" + XLSX + ") AS c ON c.sheet = s.name "
                     + "GROUP BY s.idx, s.name, s.rows, s.cols ORDER BY s.idx;",
             "Audit a workbook sheet by sheet: join the worksheet directory to its cells to "
                     + "report each sheet's used-range size next to how many non-blank cells and "
-                    + "formula cells it holds (sample.xlsx: Numbers 2x3 with 6 cells / 1 formula, "
-                    + "Other 1x1 with 1 cell / 0 formulas).");
+                    + "formula cells it holds (the inline workbook: Numbers 2x3 with 4 cells / "
+                    + "1 formula; a blank sheet would show 0 cells).");
 
     /** read_blob + detect_excel + the formats view: classify uploads by content. */
     static final FunctionExample UPLOAD_TRIAGE = Meta.example(
             "SELECT parse_filename(b.filename) AS file, "
                     + "excel.main.detect_excel(b.content) AS fmt, f.readable "
-                    + "FROM read_blob('test/sql/data/*') AS b "
+                    + "FROM read_blob(['" + FIXTURES_URL + "sample.xls', '"
+                    + FIXTURES_URL + "sample.xlsx', '" + FIXTURES_URL + "garbage.bin']) AS b "
                     + "LEFT JOIN excel.main.formats AS f "
                     + "ON f.format = excel.main.detect_excel(b.content) ORDER BY file;",
-            "Triage a directory of files by content, not extension: detect each file's Excel "
+            "Triage a batch of files by content, not extension: detect each file's Excel "
                     + "format and look it up in the formats view to see whether read_excel can "
                     + "read it (sample.xls -> xls, sample.xlsx -> xlsx, both readable; the "
-                    + "non-Excel garbage.bin gets NULL).");
+                    + "non-Excel garbage.bin gets NULL). For a local folder, read_blob takes a "
+                    + "glob pattern.");
 
-    /** read_excel feeding write_xlsx, checked with detect_excel: legacy .xls formula audit. */
+    /** read_excel feeding write_xlsx, checked with detect_excel: formula audit export. */
     static final FunctionExample FORMULA_EXPORT = Meta.example(
             "SELECT octet_length(xlsx) > 0 AS produced, excel.main.detect_excel(xlsx) AS fmt "
                     + "FROM excel.main.write_xlsx((SELECT sheet, cell_ref, formula, value "
-                    + "FROM excel.main.read_excel('test/sql/data/sample.xls') "
+                    + "FROM excel.main.read_excel(" + XLSX + ") "
                     + "WHERE formula IS NOT NULL ORDER BY sheet, cell_ref), "
                     + "sheet_name := 'Formulas', header := true);",
-            "Build a formula-audit deliverable from a legacy .xls: read its formula cells "
+            "Build a formula-audit deliverable: read a workbook's formula cells "
                     + "(sheet, cell, formula text, evaluated value) and export them to a new "
                     + ".xlsx workbook with a header row, confirming the output is detected as "
                     + "'xlsx'.");

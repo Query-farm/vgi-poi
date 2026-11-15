@@ -337,7 +337,7 @@ public final class Main {
      * only literal arguments), so each example runs as written.
      */
     private static String executableExamples() {
-        // One inline-workbook example only: each costs ~2.1k characters and the whole
+        // One inline-workbook example only: each costs ~1.7k characters and the whole
         // tag must stay under vgi-lint's 4,000-character agent-context limit (VGI417).
         // The base64 workbook has no backslashes or quotes, so it is JSON-safe as is.
         return "["
@@ -354,31 +354,27 @@ public final class Main {
     }
 
     /**
-     * Schema-level example list: one per object, then the composed examples that
-     * combine several of them (each also appears on its driving object's list).
+     * Schema-level example list: every object at least once, with the composed
+     * examples that combine several of them (each also appears on its driving
+     * object's list). The readers only take inline workbook bytes (~1.7k
+     * characters each), so the list leans on SHEET_AUDIT for both readers and
+     * leaves FORMULA_EXPORT to write_xlsx's own list, keeping the tag under
+     * vgi-lint's 8,000-character example-list limit (VGI417).
      */
     private static final java.util.List<farm.query.vgi.protocol.FunctionExample> SCHEMA_EXAMPLES =
             Meta.examples(
-                    Meta.example(
-                            "SELECT sheet, cell_ref, value, type FROM "
-                                    + "excel.main.read_excel('book.xlsx');",
-                            "Read a workbook's non-blank cells, projecting the sheet, A1 "
-                                    + "reference, value and type of each."),
-                    Meta.example(
-                            "SELECT idx, name, rows, cols FROM excel.main.excel_sheets('book.xlsx');",
-                            "List a workbook's worksheets with their dimensions."),
+                    Examples.SHEET_AUDIT,
                     Meta.example(
                             "SELECT octet_length(xlsx) AS bytes FROM excel.main.write_xlsx("
                                     + "(SELECT 1 AS id, 'Ada' AS name), sheet_name := 'People');",
                             "Export a query result to an .xlsx workbook BLOB on a named sheet "
                                     + "and size the bytes."),
                     Meta.example(
-                            "SELECT excel.main.detect_excel((SELECT content FROM "
-                                    + "read_blob('book.xlsx')));",
-                            "Detect the format of a file's bytes — 'xlsx', 'xls', or NULL."),
-                    Examples.SHEET_AUDIT,
-                    Examples.UPLOAD_TRIAGE,
-                    Examples.FORMULA_EXPORT);
+                            "SELECT excel.main.detect_excel(content) AS fmt FROM read_blob('"
+                                    + Examples.FIXTURES_URL + "sample.xls');",
+                            "Detect the format of a file's bytes — 'xls' for this legacy "
+                                    + "workbook ('xlsx' for OOXML, NULL for anything else)."),
+                    Examples.UPLOAD_TRIAGE);
 
     private static java.util.Map<String, String> schemaTags() {
         var t = new java.util.LinkedHashMap<String, String>();

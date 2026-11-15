@@ -390,10 +390,14 @@ public final class Main {
         t.put("topic", "excel-read-write");
         t.put(
                 "vgi.doc_llm",
-                "Excel spreadsheet functions: read a workbook's cells (read_excel), list its "
-                        + "worksheets (excel_sheets), write a relation to an .xlsx `BLOB` "
-                        + "(write_xlsx), and detect whether bytes are an Excel file (detect_excel). "
-                        + "Handles both .xls and .xlsx via Apache POI.");
+                "Microsoft Excel workbooks (.xls and .xlsx) in SQL, backed by Apache POI "
+                        + "(https://poi.apache.org/components/spreadsheet/). Reach for it to turn a "
+                        + "workbook (a file path or raw BLOB bytes) into rows of typed, evaluated "
+                        + "cells with their A1 references and formula text, to inspect a workbook's "
+                        + "worksheet layout, to export a query result as a downloadable .xlsx BLOB, "
+                        + "or to classify untrusted bytes as Excel without trusting a file name. "
+                        + "Corrupt or non-spreadsheet input yields no rows or NULL rather than an "
+                        + "error.");
         t.put(
                 "vgi.doc_md",
                 "# Excel functions\n\n"

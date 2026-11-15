@@ -77,9 +77,6 @@ GROUP BY ALL ORDER BY s.name;
 Numbers	2	3	6	1
 Other	1	1	1	0
 
-statement ok
-DETACH excel;
-
 # The catalog's SHEET_AUDIT and FORMULA_EXPORT examples, over the inline one-sheet
 # workbook in Examples.XLSX_B64 (Numbers: A1=2, B1=3, C1=A1+B1, A2='hello').
 query IIIIII
@@ -97,3 +94,6 @@ FROM excel.main.write_xlsx((SELECT sheet, cell_ref, formula, value
   WHERE formula IS NOT NULL ORDER BY sheet, cell_ref), sheet_name := 'Formulas', header := true);
 ----
 true	xlsx
+
+statement ok
+DETACH excel;
